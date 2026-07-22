@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E-Reader &middot; Library</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>&#128218; E-Reader</h1>
+    <span id="storage" class="badge">storage: &hellip;</span>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Upload a book</h2>
+      <p class="hint">Plain-text <code>.txt</code> files work best. Drag &amp; drop
+        or pick a file, then it appears in your library on the device.</p>
+
+      <div id="drop" class="dropzone">
+        <input id="file" type="file" accept=".txt,text/plain" multiple hidden />
+        <p>Drop <strong>.txt</strong> files here or <button id="pick" class="link">browse</button></p>
+      </div>
+
+      <div id="progressWrap" class="progress" hidden>
+        <div id="progressBar"></div>
+      </div>
+      <p id="status" class="status"></p>
+    </section>
+
+    <section class="card">
+      <h2>Library</h2>
+      <ul id="books" class="books"><li class="empty">Loading&hellip;</li></ul>
+    </section>
+  </main>
+
+  <footer>
+    <span>ESP32-S3 E-Ink E-Reader</span>
+    <a href="https://github.com/Adamlamia" target="_blank" rel="noopener">GitHub</a>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
