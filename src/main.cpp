@@ -14,6 +14,7 @@
 #include "bookmark/BookmarkManager.h"
 #include "reader/TextReader.h"
 #include "web/WebPortal.h"
+#include "usb/UsbMassStorage.h"
 
 DisplayManager   display;
 BookStorage      storage;
@@ -52,32 +53,66 @@ static void showLibraryScreen() {
 }
 
 // --- Button handling -------------------------------------------------------
-static void handleButtons() {
-    static uint32_t bootPressStart = 0;
+//  Everything is driveable from the single on-board BOOT button via gestures:
+//    single tap -> next page   double tap -> previous page
+//    triple tap -> library     long press -> bookmark
+//  Optional external PREV/NEXT buttons (if wired) still work directly.
+static void dropBookmark() {
+    if (!reader) return;
+    bookmarks->addBookmark(reader->bookName(), reader->currentOffset(), "Quick mark");
+    bookmarks->save();
+    display.showMessage("Bookmarked", "Position saved");
+    delay(600);
+    reader->render();
+}
 
-    // BOOT: short press = next page, long press (>800ms) = drop a bookmark.
-    if (digitalRead(BTN_BOOT) == LOW) {
-        if (bootPressStart == 0) bootPressStart = millis();
-    } else if (bootPressStart) {
-        uint32_t held = millis() - bootPressStart;
-        bootPressStart = 0;
-        g_lastActivityMs = millis();
-        if (reader) {
-            if (held > 800) {
-                bookmarks->addBookmark(reader->bookName(),
-                                       reader->currentOffset(), "Quick mark");
-                bookmarks->save();
-                display.showMessage("Bookmarked", "Position saved");
-                delay(600);
-                reader->render();
-            } else {
-                reader->nextPage();
-            }
+static void resolveTaps(uint8_t taps) {
+    if (taps == 1) { if (reader) reader->nextPage(); }
+    else if (taps == 2) { if (reader) reader->prevPage(); }
+    else { showLibraryScreen(); }        // triple (or more) tap
+}
+
+static void handleButtons() {
+    static bool     down          = false;
+    static uint32_t pressStart     = 0;
+    static uint32_t lastReleaseMs  = 0;
+    static uint8_t  tapCount        = 0;
+    static bool     longFired       = false;
+
+    const uint32_t now = millis();
+    const bool     nowDown = (digitalRead(BTN_BOOT) == LOW);
+
+    if (nowDown && !down) {                 // ---- press begins
+        down = true;
+        pressStart = now;
+        longFired = false;
+    } else if (nowDown && down) {            // ---- being held
+        if (!longFired && now - pressStart >= BTN_LONGPRESS_MS) {
+            longFired = true;
+            g_lastActivityMs = now;
+            dropBookmark();                  // long press = bookmark
+            tapCount = 0;                    // consumed; not a tap
+        }
+    } else if (!nowDown && down) {           // ---- release
+        down = false;
+        uint32_t held = now - pressStart;
+        if (!longFired && held >= BTN_DEBOUNCE_MS) {
+            tapCount++;
+            lastReleaseMs = now;
         }
     }
 
-    if (digitalRead(BTN_PREV) == LOW) { g_lastActivityMs = millis(); if (reader) reader->prevPage(); delay(180); }
-    if (digitalRead(BTN_NEXT) == LOW) { g_lastActivityMs = millis(); if (reader) reader->nextPage(); delay(180); }
+    // A multi-tap sequence completes once the gap since the last release passes.
+    if (tapCount > 0 && !down && now - lastReleaseMs > BTN_MULTITAP_GAP_MS) {
+        g_lastActivityMs = now;
+        uint8_t taps = tapCount;
+        tapCount = 0;
+        resolveTaps(taps);
+    }
+
+    // Optional dedicated external buttons (wired to GND).
+    if (digitalRead(BTN_PREV) == LOW) { g_lastActivityMs = now; if (reader) reader->prevPage(); delay(180); }
+    if (digitalRead(BTN_NEXT) == LOW) { g_lastActivityMs = now; if (reader) reader->nextPage(); delay(180); }
 }
 
 void setup() {
@@ -91,6 +126,21 @@ void setup() {
 
     if (!display.begin()) Serial.println("[main] display init failed");
     display.showMessage(FW_NAME, "Starting up...");
+
+#if ENABLE_USB_MSC
+    // Hold BOOT while powering on to expose the microSD card as a USB drive.
+    delay(60);                               // let the input settle
+    if (digitalRead(BTN_BOOT) == LOW) {
+        static UsbMassStorage usb;
+        if (usb.begin()) {
+            display.showMessage("USB Drive Mode",
+                                "SD card mounted on your computer");
+            while (true) delay(1000);        // host owns the card; stay here
+        }
+        display.showMessage("USB Drive Mode", "No SD card detected");
+        delay(1500);
+    }
+#endif
 
     if (!storage.begin()) {
         display.showMessage("Storage error", "No SD / LittleFS available");

@@ -32,17 +32,49 @@
 #define SETTINGS_FILE   "/settings.json"
 
 // --- microSD (SPI) pins for the T5 4.7" S3 --------------------------------
-#define SD_SCLK   14
-#define SD_MISO   16
-#define SD_MOSI   15
-#define SD_CS     13
+// These match LilyGo-EPD47's utilities.h for the ESP32-S3 board. Guarded so
+// that if utilities.h is included first, its definitions win (no redefine
+// warnings) and stay authoritative.
+#ifndef SD_MISO
+  #define SD_MISO   (16)
+#endif
+#ifndef SD_MOSI
+  #define SD_MOSI   (15)
+#endif
+#ifndef SD_SCLK
+  #define SD_SCLK   (11)
+#endif
+#ifndef SD_CS
+  #define SD_CS     (42)
+#endif
 
 // --- Buttons (T5 4.7" S3) -------------------------------------------------
-// The board exposes a BOOT button (GPIO0). Wire extra tactile buttons to the
-// free GPIOs below for page-turn / menu without the web UI.
-#define BTN_BOOT    0     // built-in: short = next page, long = menu
+// The board reliably exposes ONE programmable button at runtime: BOOT (GPIO0).
+// The full reader is therefore driveable from that single button via press
+// gestures (see below). Optional external tactile buttons on the free GPIOs
+// give dedicated prev/next if you wire them (button -> GND, pull-ups on).
+#define BTN_BOOT    0     // built-in gesture button (see gesture map)
 #define BTN_PREV    39    // optional external button: previous page
 #define BTN_NEXT    40    // optional external button: next page
+
+// --- Single-button gesture map (BOOT) -------------------------------------
+//   single tap   -> next page
+//   double tap   -> previous page
+//   triple tap   -> open the library screen
+//   long press   -> drop a bookmark at the current position
+#define BTN_DEBOUNCE_MS     30    // ignore contact bounce
+#define BTN_LONGPRESS_MS    700   // hold beyond this = long press
+#define BTN_MULTITAP_GAP_MS 350   // max gap between taps in a multi-tap
+
+// --- USB Mass Storage ("USB drive mode") ----------------------------------
+// When enabled, holding BOOT while plugging into a computer exposes the
+// microSD card as a normal USB drive so you can drag books over the cable.
+// Off by default: enabling it switches the USB stack to TinyUSB (OTG), which
+// changes the serial-monitor behaviour and needs validating on hardware.
+// Enable via build_flags in platformio.ini: -DENABLE_USB_MSC=1
+#ifndef ENABLE_USB_MSC
+  #define ENABLE_USB_MSC 0
+#endif
 
 // --- Battery monitoring ---------------------------------------------------
 #define BATTERY_ADC_PIN   14    // shared ADC divider on many T5 revisions

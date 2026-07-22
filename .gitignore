@@ -13,6 +13,10 @@
 *.o
 *.a
 
+# Build logs
+build_*.log
+*.log
+
 # IDE / editor
 .vscode/
 !.vscode/extensions.json

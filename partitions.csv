@@ -1,9 +1,9 @@
-; Partition table for the LILYGO T5 4.7" E-Paper S3 (16 MB flash)
-; ---------------------------------------------------------------------------
-; Two OTA app slots (for over-the-air firmware updates) + a large LittleFS
-; partition that holds the web UI and, if no SD card is present, books.
-; ---------------------------------------------------------------------------
-; Name,   Type, SubType,  Offset,   Size,    Flags
+# Partition table for the LILYGO T5 4.7" E-Paper S3 (16 MB flash)
+# ---------------------------------------------------------------------------
+# Two OTA app slots (for over-the-air firmware updates) + a large LittleFS
+# partition that holds the web UI and, if no SD card is present, books.
+# ---------------------------------------------------------------------------
+# Name,   Type, SubType,  Offset,   Size,    Flags
 nvs,      data, nvs,      0x9000,   0x5000,
 otadata,  data, ota,      0xe000,   0x2000,
 app0,     app,  ota_0,    0x10000,  0x400000,

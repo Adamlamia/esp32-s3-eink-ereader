@@ -7,6 +7,7 @@
 //  need to hold the whole book in RAM — important for large books.
 // ===========================================================================
 #include <Arduino.h>
+#include "config.h"
 #include "display/DisplayManager.h"
 #include "storage/BookStorage.h"
 #include "bookmark/BookmarkManager.h"
