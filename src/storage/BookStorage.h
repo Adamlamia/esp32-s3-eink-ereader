@@ -33,6 +33,11 @@ public:
     String   readChunk(const String &path, uint32_t offset, uint32_t maxBytes);
     uint32_t fileSize(const String &path);
 
+    // Capacity of the active filesystem, in bytes.
+    uint64_t totalBytes();
+    uint64_t usedBytes();
+    uint64_t freeBytes();
+
     fs::FS  &fs();                      // active filesystem handle
 
 private:

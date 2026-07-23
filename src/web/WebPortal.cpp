@@ -63,6 +63,10 @@ void WebPortal::registerRoutes() {
             o["size"] = b.size;
         }
         doc["storage"] = _storage.usingSD() ? "sd" : "flash";
+        JsonObject sp = doc["space"].to<JsonObject>();
+        sp["total"] = _storage.totalBytes();
+        sp["used"]  = _storage.usedBytes();
+        sp["free"]  = _storage.freeBytes();
         String out; serializeJson(doc, out);
         req->send(200, "application/json", out);
     });

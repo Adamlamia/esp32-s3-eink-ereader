@@ -26,33 +26,44 @@
 
 | Function | GPIO | Notes |
 |----------|------|-------|
-| SD SCLK | 14 | shared SPI |
+| SD SCLK | 11 | shared SPI (matches LilyGo-EPD47 `utilities.h`) |
 | SD MISO | 16 | |
 | SD MOSI | 15 | |
-| SD CS   | 13 | |
-| BOOT button | 0 | built-in; short = next page, long = bookmark |
-| PREV button | 39 | optional external tactile button to GND |
-| NEXT button | 40 | optional external tactile button to GND |
-| Battery ADC | 14 | via on-board divider (`BATTERY_DIVIDER`) |
+| SD CS   | 42 | |
+| User button | 21 | built-in; gesture-driven (see Navigation in the README) |
+| PREV button | −1 | optional external button, **disabled** by default |
+| NEXT button | −1 | optional external button, **disabled** by default |
+| Battery ADC | 14 | on-board divider (`BATTERY_DIVIDER`); ADC2 — see caveat below |
 
-> These pins follow common T5 4.7" S3 references but **vary by board
+> ⚠️ **GPIO0 and GPIO40 are e-paper control lines** on this board (CFG_STR and
+> STH), so they **cannot** be used as buttons. The board exposes only **one**
+> user button, GPIO21, wired to GND and read active-low — all reading, menu and
+> library actions are driven from it by hold-duration gestures.
+>
+> These pins follow the LilyGo-EPD47 S3 reference but **vary by board
 > revision**. Verify against your unit's schematic and adjust `config.h`.
-> The SD and battery-ADC entries above intentionally reuse GPIO 14 as a
-> placeholder — split them onto distinct pins for your revision.
 
 ## Optional external buttons
-Wire a momentary push button between the GPIO and **GND**. Internal pull-ups are
-enabled in firmware (`INPUT_PULLUP`), so no external resistor is needed.
+The reader works fully from the single GPIO21 button, so external buttons are
+**off by default** (`BTN_PREV` / `BTN_NEXT` are `-1` in `config.h`). To add real
+prev/next keys, pick a **free** GPIO (not 0, 40, or the SD/e-paper pins), set it
+in `config.h`, and wire a momentary push button between that GPIO and **GND**.
+Internal pull-ups are enabled in firmware (`INPUT_PULLUP`), so no external
+resistor is needed.
 
 ```
-GPIO 39 ──[ button ]── GND      (previous page)
-GPIO 40 ──[ button ]── GND      (next page)
+GPIO xx ──[ button ]── GND      (previous page → set BTN_PREV = xx)
+GPIO yy ──[ button ]── GND      (next page     → set BTN_NEXT = yy)
 ```
 
 ## Power / battery
-- The reader uses **light sleep** after `IDLE_SLEEP_SECONDS` of inactivity and
-  wakes on the BOOT button.
-- Wi-Fi is powered down `WEB_ACTIVE_MINUTES` after boot to save energy; reading
-  continues fully offline.
+- The reader uses **light sleep** after `IDLE_SLEEP_SECONDS` (default 120 s) of
+  inactivity and wakes on the GPIO21 button.
+- Wi-Fi is powered down `WEB_ACTIVE_MINUTES` (default 10 min) after boot to save
+  energy; reading continues fully offline. Toggling Wi-Fi by hand (menu or the
+  library's Wi-Fi row) disables this auto-shutoff.
+- Battery voltage is read on **ADC2 (GPIO14)**, which the ESP32-S3 **cannot use
+  while Wi-Fi is active** — the firmware skips battery sampling whenever the
+  portal is on and keeps the last reading.
 - E-ink retains the last image with **zero power**, so a "sleeping" reader still
   shows your page.

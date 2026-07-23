@@ -15,8 +15,8 @@
   <main>
     <section class="card">
       <h2>Upload a book</h2>
-      <p class="hint">Plain-text <code>.txt</code> files work best. Drag &amp; drop
-        or pick a file, then it appears in your library on the device.</p>
+      <p class="hint">Drag &amp; drop or pick files &mdash; they appear in your
+        library on the device.</p>
 
       <div id="drop" class="dropzone">
         <input id="file" type="file" accept=".txt,text/plain" multiple hidden />
@@ -30,8 +30,22 @@
     </section>
 
     <section class="card">
-      <h2>Library</h2>
+      <h2>Library <span id="count" class="count"></span></h2>
       <ul id="books" class="books"><li class="empty">Loading&hellip;</li></ul>
+    </section>
+
+    <section class="card">
+      <h2>How to add a book</h2>
+      <ol class="steps">
+        <li>Join the Wi-Fi network <code>EReader-Setup</code> (password <code>read1234</code>).</li>
+        <li>Open <code>http://ereader.local</code> (or <code>http://192.168.4.1</code>).</li>
+        <li>Drag a file into the box above, or click <em>browse</em>.</li>
+        <li>On the device, triple-tap the button to open the library and pick it.</li>
+      </ol>
+      <p class="hint"><strong>Supported:</strong> plain-text <code>.txt</code> files saved as UTF-8
+        (books, notes, articles, scripts).<br />
+        <strong>Not supported:</strong> PDF, EPUB, MOBI, DOCX &mdash; convert them to <code>.txt</code>
+        first (e.g. export as TXT from Calibre).</p>
     </section>
   </main>
 

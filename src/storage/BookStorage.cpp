@@ -98,3 +98,17 @@ String BookStorage::readChunk(const String &path, uint32_t offset, uint32_t maxB
     f.close();
     return out;
 }
+
+// --- Capacity reporting ----------------------------------------------------
+uint64_t BookStorage::totalBytes() {
+    return _usingSD ? SD.totalBytes() : (uint64_t)LittleFS.totalBytes();
+}
+
+uint64_t BookStorage::usedBytes() {
+    return _usingSD ? SD.usedBytes() : (uint64_t)LittleFS.usedBytes();
+}
+
+uint64_t BookStorage::freeBytes() {
+    uint64_t t = totalBytes(), u = usedBytes();
+    return t > u ? (t - u) : 0;
+}

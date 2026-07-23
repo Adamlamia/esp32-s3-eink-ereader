@@ -41,7 +41,10 @@ main { max-width: 720px; margin: 0 auto; padding: 20px; }
   margin-bottom: 20px;
 }
 .card h2 { margin-top: 0; font-size: 1.05rem; }
+.count { color: var(--muted); font-weight: 400; font-size: 0.85rem; }
 .hint { color: var(--muted); font-size: 0.9rem; }
+.steps { color: var(--muted); font-size: 0.9rem; padding-left: 20px; margin: 8px 0; }
+.steps li { margin: 4px 0; }
 code { background: var(--bg); padding: 1px 6px; border-radius: 6px; }
 
 .dropzone {

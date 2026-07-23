@@ -23,11 +23,13 @@ public:
 
     void nextPage();
     void prevPage();
+    void goToPageIndex(int idx);         // jump to a cached page index (clamped)
     void render();                      // (re)draw the current page
 
     void setFontSize(uint8_t size);     // 0..2, triggers relayout
 
     uint32_t currentOffset() const { return _pageStart; }
+    int      pageIndex() const { return _pageIndex; }
     int      currentPageNumber() const { return _pageIndex + 1; }
     int      estimatedTotalPages() const;
     const String &bookName() const { return _bookName; }

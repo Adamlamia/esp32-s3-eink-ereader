@@ -3,6 +3,7 @@ const $ = (sel) => document.querySelector(sel);
 
 const els = {
   storage: $("#storage"),
+  count: $("#count"),
   books: $("#books"),
   drop: $("#drop"),
   file: $("#file"),
@@ -22,7 +23,10 @@ async function loadBooks() {
   try {
     const res = await fetch("/api/books");
     const data = await res.json();
-    els.storage.textContent = "storage: " + (data.storage || "?");
+    const type = data.storage === "sd" ? "microSD" : "flash";
+    const free = data.space && data.space.free != null ? data.space.free : null;
+    els.storage.textContent =
+      free != null ? fmtSize(free) + " free \u00b7 " + type : "storage: " + type;
     renderBooks(data.books || []);
   } catch (e) {
     els.books.innerHTML = '<li class="empty">Could not reach the device.</li>';
@@ -30,6 +34,7 @@ async function loadBooks() {
 }
 
 function renderBooks(books) {
+  els.count.textContent = books.length ? "(" + books.length + ")" : "";
   if (!books.length) {
     els.books.innerHTML = '<li class="empty">No books yet — upload one above.</li>';
     return;

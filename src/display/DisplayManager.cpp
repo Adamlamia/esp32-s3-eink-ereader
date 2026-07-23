@@ -6,6 +6,7 @@
 
 #include "epd_driver.h"     // from LilyGo-EPD47
 #include "firasans.h"       // bundled font in the LilyGo-EPD47 examples
+#include "ReaderFont.h"     // compact Georgia body font (generated)
 
 // Grayscale levels used across the UI (0 = black, 255 = white).
 static const uint8_t INK   = 0;
@@ -51,8 +52,19 @@ int DisplayManager::lineHeightFor(uint8_t fontSize) const {
     }
 }
 
+int DisplayManager::readerLineHeight() const { return ReaderFont.advance_y; }
+int DisplayManager::readerAscender()   const { return ReaderFont.ascender;  }
+
+int DisplayManager::textWidth(const String &text, bool book) const {
+    if (!text.length()) return 0;
+    const GFXfont *f = book ? &ReaderFont : (const GFXfont *)&FiraSans;
+    int32_t cx = 0, cy = 0, x1, y1, w, h;
+    get_text_bounds((GFXfont *)f, text.c_str(), &cx, &cy, &x1, &y1, &w, &h, NULL);
+    return (int)w;
+}
+
 int DisplayManager::usableWidth()  const { return DISPLAY_WIDTH  - 2 * MARGIN_X; }
-int DisplayManager::usableHeight() const { return DISPLAY_HEIGHT - 2 * MARGIN_Y - 30; }
+int DisplayManager::usableHeight() const { return DISPLAY_HEIGHT - MARGIN_Y - STATUS_H; }
 
 void DisplayManager::drawText(int x, int y, const String &text, uint8_t /*fontSize*/) {
     int cx = x, cy = y;
@@ -61,11 +73,28 @@ void DisplayManager::drawText(int x, int y, const String &text, uint8_t /*fontSi
     writeln((GFXfont *)&FiraSans, text.c_str(), &cx, &cy, _framebuffer);
 }
 
+void DisplayManager::drawBookText(int x, int y, const String &text) {
+    int cx = x, cy = y;
+    writeln((GFXfont *)&ReaderFont, text.c_str(), &cx, &cy, _framebuffer);
+}
+
 void DisplayManager::drawTextCentered(int y, const String &text, uint8_t fontSize) {
-    int32_t x1, y1, w, h;
-    get_text_bounds((GFXfont *)&FiraSans, text.c_str(), 0, 0, &x1, &y1, &w, &h, NULL);
+    int32_t cx = 0, cy = 0, x1, y1, w, h;
+    // NOTE: get_text_bounds() takes x/y as int32_t* cursors (not values); passing
+    // literal 0 would be a NULL pointer and crash on the first dereference.
+    get_text_bounds((GFXfont *)&FiraSans, text.c_str(), &cx, &cy, &x1, &y1, &w, &h, NULL);
     int x = (DISPLAY_WIDTH - w) / 2;
     drawText(x, y, text, fontSize);
+}
+
+void DisplayManager::drawSelectionBox(int x, int y, int w, int h, int thickness) {
+    // A few concentric rectangles give a bold, clearly visible border without an
+    // inverted fill (the font path only draws dark text, so white-on-black is not
+    // available). Clamped so it never runs off the panel edges.
+    if (x < 0) x = 0;
+    if (y < 0) y = 0;
+    for (int i = 0; i < thickness; i++)
+        epd_draw_rect(x - i, y - i, w + 2 * i, h + 2 * i, INK, _framebuffer);
 }
 
 void DisplayManager::showMessage(const String &title, const String &body) {
@@ -76,17 +105,16 @@ void DisplayManager::showMessage(const String &title, const String &body) {
 }
 
 void DisplayManager::showStatusBar(const String &bookTitle, int page,
-                                   int totalPages, int batteryPct) {
-    // Drawn at the very bottom of the framebuffer, just above the flush.
+                                   int totalPages) {
+    // Drawn small (reading font) at the very bottom, just above the flush.
     String left  = bookTitle;
-    if (left.length() > 40) left = left.substring(0, 37) + "...";
+    if (left.length() > 46) left = left.substring(0, 43) + "...";
     String right = "p." + String(page) + "/" + String(totalPages) +
-                   "  " + String(batteryPct) + "%";
+                   "   " + String(_batteryPct) + "%";
+    // Small on-air marker so you can tell at a glance the upload portal is live.
+    if (_wifiOn) right = "WiFi   " + right;
 
-    int y = DISPLAY_HEIGHT - 12;
-    drawText(MARGIN_X, y, left, 0);
-
-    int32_t x1, y1, w, h;
-    get_text_bounds((GFXfont *)&FiraSans, right.c_str(), 0, 0, &x1, &y1, &w, &h, NULL);
-    drawText(DISPLAY_WIDTH - MARGIN_X - w, y, right, 0);
+    int y = DISPLAY_HEIGHT - 7;
+    drawBookText(MARGIN_X, y, left);
+    drawBookText(DISPLAY_WIDTH - MARGIN_X - textWidth(right, true), y, right);
 }

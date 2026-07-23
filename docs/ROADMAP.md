@@ -55,7 +55,11 @@ display object:
 - 🔴 **Photo frame mode** — dither uploaded images to 16-grey and display them.
 
 ## 5. Input & interaction
-- 🟢 **Gesture buttons** — double-press = bookmark menu, triple = library.
+- ✅ **Single-button gesture UI (done)** — hold-duration bands drive
+  next / previous / menu, with an on-device menu (Resume · Library · Bookmark ·
+  Wi-Fi) and a book-picker library.
+- 🟢 **More gesture shortcuts** — e.g. a distinct hold for "bookmark here"
+  without opening the menu.
 - 🟡 **Capacitive touch strip** — tap edges to turn pages (ESP32-S3 has touch
   pins).
 - 🟡 **Accelerometer page-turn** — tilt to flip (add an MPU-6050/LIS3DH).
@@ -88,9 +92,9 @@ display object:
 ---
 
 ## Suggested next 3 steps
-1. **Get it on hardware**: `pio run -t upload && pio run -t uploadfs`, confirm
-   the panel, SD and Wi-Fi portal all come up; fix pin/board specifics.
-2. **Font size + day/night** buttons — quick wins that make it feel real.
+1. **Font size cycling** — add a menu item to step small / medium / large on the
+   fly (`TextReader::setFontSize()` already exists).
+2. **Day / night mode** — invert ink/paper for a dark page.
 3. **OTA update page** — so every future improvement is a browser upload, no
    cable.
 

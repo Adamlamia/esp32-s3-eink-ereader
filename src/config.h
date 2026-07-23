@@ -49,22 +49,28 @@
 #endif
 
 // --- Buttons (T5 4.7" S3) -------------------------------------------------
-// The board reliably exposes ONE programmable button at runtime: BOOT (GPIO0).
-// The full reader is therefore driveable from that single button via press
-// gestures (see below). Optional external tactile buttons on the free GPIOs
-// give dedicated prev/next if you wire them (button -> GND, pull-ups on).
-#define BTN_BOOT    0     // built-in gesture button (see gesture map)
-#define BTN_PREV    39    // optional external button: previous page
-#define BTN_NEXT    40    // optional external button: next page
+// The T5 4.7" S3 exposes ONE user button, on GPIO21 (LilyGo BUTTON_1), wired
+// to GND and read active-low. The whole reader is driven from it via press
+// gestures (see below). NOTE: GPIO0 is the e-paper CFG_STR line and GPIO40 is
+// the e-paper STH line, so they CANNOT be used as buttons. The optional
+// external prev/next pins are disabled (-1); set them to a free GPIO only if
+// you physically wire extra buttons (button -> GND).
+#define BTN_BOOT    21    // built-in user button (see gesture map)
+#define BTN_PREV    -1    // optional external button: previous page (disabled)
+#define BTN_NEXT    -1    // optional external button: next page (disabled)
 
-// --- Single-button gesture map (BOOT) -------------------------------------
-//   single tap   -> next page
-//   double tap   -> previous page
-//   triple tap   -> open the library screen
-//   long press   -> drop a bookmark at the current position
+// --- Single-button gesture map (GPIO21) -----------------------------------
+//  While reading a book (three hold bands on the one button):
+//   quick tap    -> next page (fires instantly on release)
+//   medium hold  -> previous page (fires on release, before the menu threshold)
+//   long hold    -> open the menu (Resume / Library / Bookmark / Wi-Fi)
+//  In the menu or the library list:
+//   single tap   -> move the highlight box (wraps around, acts instantly)
+//   long hold    -> select / open the highlighted item
+//                   (menu item 0 "Resume" closes; library row 0 toggles Wi-Fi)
 #define BTN_DEBOUNCE_MS     30    // ignore contact bounce
-#define BTN_LONGPRESS_MS    700   // hold beyond this = long press
-#define BTN_MULTITAP_GAP_MS 350   // max gap between taps in a multi-tap
+#define BTN_PREVHOLD_MS     350   // reading: hold this long (< long-press) = prev page
+#define BTN_LONGPRESS_MS    750   // hold beyond this = long press (open menu / select)
 
 // --- USB Mass Storage ("USB drive mode") ----------------------------------
 // When enabled, holding BOOT while plugging into a computer exposes the
@@ -83,9 +89,10 @@
 // --- Reader defaults ------------------------------------------------------
 #define DISPLAY_WIDTH     960
 #define DISPLAY_HEIGHT    540
-#define MARGIN_X          30
-#define MARGIN_Y          30
-#define DEFAULT_FONT_SIZE 1     // 0 = small, 1 = medium, 2 = large
+#define MARGIN_X          26    // side margins (px)
+#define MARGIN_Y          20    // top margin (px)
+#define STATUS_H          30    // bottom status-bar reserve (px)
+#define DEFAULT_FONT_SIZE 1     // FiraSans drives UI text; book body uses ReaderFont
 #define FULL_REFRESH_EVERY 8    // full-clear every N pages to kill ghosting
 
 // --- Power management -----------------------------------------------------

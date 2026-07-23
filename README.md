@@ -6,9 +6,10 @@ A minimalist, hackable e-reader built on the **LILYGO T5 4.7" E-Paper S3**
 **self-hosted website** — just connect your laptop or phone to the reader's
 Wi-Fi and upload.
 
-> Status: **v0.1.0 — early / functional scaffold.** The architecture, build
-> system and web portal are in place. See the [Roadmap](docs/ROADMAP.md) for
-> what's next and a pile of ideas to make it your own.
+> Status: **v0.1.0 — running on hardware.** Reading, word-wrap pagination,
+> bookmarks, the on-device menu/library and the Wi-Fi upload portal all work on
+> the LILYGO T5 4.7" S3. See the [Roadmap](docs/ROADMAP.md) for what's next and a
+> pile of ideas to make it your own.
 
 ---
 
@@ -22,10 +23,13 @@ Wi-Fi and upload.
 - **Continue reading** — the last book and exact reading position are saved and
   restored automatically on boot (e-ink keeps the last page on screen even with
   the power off).
-- **Bookmarks** — drop a quick bookmark with a long-press of the BOOT button, or
-  add named bookmarks from the web UI.
+- **On-device menu & library** — hold the button while reading to open a menu
+  (Resume · Library · Bookmark here · Wi-Fi on/off) and browse or switch books
+  right on the device — no phone required.
+- **Bookmarks** — drop a quick bookmark from the on-device menu ("Bookmark
+  here"), or add named bookmarks from the web UI.
 - **E-ink friendly** — word-wrapped pagination, periodic full-refresh to fight
-  ghosting, and deep/light-sleep power management for long battery life.
+  ghosting, and light-sleep power management for long battery life.
 - **OTA-ready partitions** — dual app slots so you can add over-the-air firmware
   updates later.
 
@@ -39,7 +43,8 @@ Wi-Fi and upload.
 | microSD card (optional) | FAT32, holds your book library |
 | USB-C cable | Flashing + charging |
 | Li-Po battery (optional) | For untethered reading |
-| 2× tactile buttons (optional) | External prev/next page (see pin map) |
+| 1× on-board button | Drives everything by hold-duration gestures (GPIO21) |
+| 2× tactile buttons (optional) | External prev/next page — disabled by default (see pin map) |
 
 Full wiring and board notes: [docs/HARDWARE.md](docs/HARDWARE.md).
 
@@ -71,11 +76,42 @@ pio run -t uploadfs
 3. Open **http://ereader.local** (or the IP printed on the serial monitor).
 4. Drag a `.txt` file onto the page. It appears in your library and on the
    device.
-5. Use the BOOT button (short = next page, long = bookmark) or the optional
-   external buttons to read.
+5. Read with the single on-board button: **quick tap = next page**, **medium
+   hold = previous page**, **long hold = menu**. See **Navigation** below.
 
 > 💡 **Where to get free books:** [Project Gutenberg](https://www.gutenberg.org/)
 > offers tens of thousands of public-domain titles as *Plain Text UTF-8*.
+
+---
+
+## 🎮 Navigation (one button)
+
+Everything is driven by the single on-board button (GPIO21). Actions are chosen
+by **how long you hold**:
+
+**While reading**
+
+| Gesture | Hold time | Action |
+|---|---|---|
+| Quick tap | < 350 ms | Next page |
+| Medium hold | 350–750 ms | Previous page |
+| Long hold | ≥ 750 ms | Open the menu |
+
+**In the menu / library list**
+
+| Gesture | Action |
+|---|---|
+| Single tap | Move the highlight box (wraps around) |
+| Hold | Select / open the highlighted item |
+
+- The **menu** (Resume · Library · Bookmark here · Wi-Fi upload) opens with a
+  long hold while reading.
+- The **library** lists your books; row 0 is a virtual **Wi-Fi upload: ON/OFF**
+  toggle. Tap to move the box, hold to open a book or flip Wi-Fi.
+- A fast double-tap is *not* used: a full e-ink refresh (~0.8 s) blocks button
+  polling, so hold-duration bands are used instead for reliable input.
+- Timings live in [`src/config.h`](src/config.h) (`BTN_PREVHOLD_MS`,
+  `BTN_LONGPRESS_MS`). Optional external prev/next buttons can be enabled there.
 
 ---
 
@@ -117,8 +153,8 @@ pio run -t uploadfs
   for the T5 4.7" S3 (PSRAM/flash). If your revision differs, see
   [docs/HARDWARE.md](docs/HARDWARE.md).
 - Display calls target the [LilyGo-EPD47](https://github.com/Xinyuan-LilyGo/LilyGo-EPD47)
-  library. Firmware has not yet been validated on physical hardware — treat
-  v0.1.0 as a strong starting scaffold to flash and iterate on.
+  library. Firmware runs on the LILYGO T5 4.7" S3; if your board revision
+  differs, verify the pin map in [docs/HARDWARE.md](docs/HARDWARE.md).
 - Never commit real Wi-Fi passwords: put them in `src/secrets.h` (git-ignored).
 
 ## 📜 License
