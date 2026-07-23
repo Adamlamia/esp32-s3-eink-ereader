@@ -217,29 +217,45 @@ def build():
     p.step(4, "Uploaded books appear in the Library on the device. You can "
               "also delete books from the same page.")
     p.note("To save battery, the Wi-Fi portal automatically turns off about "
-           "10 minutes after boot. You can switch it back on at any time with "
-           "a quadruple tap of the BOOT button (see Navigation).")
+           "10 minutes after boot. You can switch it back on at any time from "
+           "the reader's menu or the Library's Wi-Fi row (see Navigation).")
 
     # ---- 4. Navigation ---------------------------------------------------
     p = Page(pages, "ESP32-S3 E-Ink E-Reader  -  User Manual")
-    p.heading("4. Navigation - the single BOOT button")
-    p.para("Everything is controlled with the one on-board BOOT button using "
-           "simple tap gestures. Tap quickly; a short pause ends a sequence.")
-    p.space(6)
+    p.heading("4. Navigation - the single button")
+    p.para("Everything is controlled with the one on-board button. Rather than "
+           "counting taps, the reader senses how long you hold it: a quick tap "
+           "does one thing, a longer hold does another. A brief full-screen "
+           "flash confirms each action.")
+
+    p.subheading("While reading a book")
     p.d.rectangle((MARGIN, p.y, PAGE_W - MARGIN, p.y + 44), fill=BAND)
     p.d.text((MARGIN + 8, p.y + 11), "GESTURE", font=F_SH, fill=SUBTLE)
     p.d.text((MARGIN + 430, p.y + 11), "WHAT IT DOES", font=F_SH, fill=SUBTLE)
     p.y += 44
-    p.gesture_row("Single tap", "Next page")
-    p.gesture_row("Double tap", "Previous page")
-    p.gesture_row("Triple tap", "Open the Library screen")
-    p.gesture_row("Quadruple tap", "Turn the Wi-Fi portal ON / OFF")
-    p.gesture_row("Long press (~0.7s)", "Drop a bookmark at this spot")
-    p.space(24)
+    p.gesture_row("Quick tap", "Next page")
+    p.gesture_row("Medium hold (~0.35s)", "Previous page")
+    p.gesture_row("Long hold (~0.75s)", "Open the menu")
+
+    p.subheading("In the menu or the Library list")
+    p.d.rectangle((MARGIN, p.y, PAGE_W - MARGIN, p.y + 44), fill=BAND)
+    p.d.text((MARGIN + 8, p.y + 11), "GESTURE", font=F_SH, fill=SUBTLE)
+    p.d.text((MARGIN + 430, p.y + 11), "WHAT IT DOES", font=F_SH, fill=SUBTLE)
+    p.y += 44
+    p.gesture_row("Quick tap", "Move the highlight to the next item")
+    p.gesture_row("Long hold", "Select / open the highlighted item")
+    p.space(16)
+    p.para("The menu lists Resume reading, Library, Bookmark here, and Wi-Fi "
+           "upload on/off. The Library shows your books with a Wi-Fi upload "
+           "toggle as the first row, so uploads are always reachable.")
+    p.note("Previous page is a short hold, not a double tap: the e-ink screen "
+           "takes about 0.8 s to refresh a page, which is too slow to catch a "
+           "fast double tap reliably, so a brief hold is used instead.")
+    p.space(8)
     p.subheading("Optional dedicated buttons")
     p.para("If you wire external Previous / Next buttons to the free GPIO pins "
            "(see the hardware notes), they turn pages directly without needing "
-           "the tap gestures.")
+           "the button gestures.")
 
     # ---- 5. Features + rest ---------------------------------------------
     p = Page(pages, "ESP32-S3 E-Ink E-Reader  -  User Manual")
@@ -255,10 +271,11 @@ def build():
              "light sleep to save power.")
 
     p.heading("6. Turning Wi-Fi On and Off")
-    p.para("Quadruple-tap the BOOT button to toggle the upload portal. The "
-           "screen confirms with \"Wi-Fi On\" (and the join details) or "
-           "\"Wi-Fi Off\". Toggling by hand overrides the automatic power-"
-           "saving shutoff, so it stays exactly as you set it.")
+    p.para("Open the menu (long-hold while reading) and select \"Wi-Fi upload\", "
+           "or hold on the Wi-Fi row at the top of the Library, to toggle the "
+           "upload portal. The screen confirms with \"Wi-Fi On\" (and the join "
+           "details) or \"Wi-Fi Off\". Toggling by hand overrides the automatic "
+           "power-saving shutoff, so it stays exactly as you set it.")
 
     p.heading("7. Power & Battery")
     p.bullet("After about 2 minutes idle the reader enters light sleep; press "
@@ -270,7 +287,8 @@ def build():
     p.bullet("microSD not detected: make sure it is FAT32 and fully seated; "
              "the reader still runs on internal storage without it.")
     p.bullet("Can't open ereader.local: use http://192.168.4.1 instead.")
-    p.bullet("Portal not showing: quadruple-tap BOOT to switch Wi-Fi back on.")
+    p.bullet("Portal not showing: open the menu (or the Library's Wi-Fi row) "
+             "and switch Wi-Fi back on.")
 
     # Footer on every content page
     for idx, im in enumerate(pages[1:], start=2):
