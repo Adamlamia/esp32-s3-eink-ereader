@@ -3,6 +3,7 @@
 // ===========================================================================
 #include "WebPortal.h"
 #include "config.h"
+#include "core/PathValidation.h"
 
 #include <WiFi.h>
 #include <ESPmDNS.h>
@@ -93,6 +94,12 @@ void WebPortal::registerRoutes() {
     _server->on("/api/delete", HTTP_POST, [this](AsyncWebServerRequest *req) {
         if (!req->hasParam("path")) { req->send(400); return; }
         String path = req->getParam("path")->value();
+        // C1: only allow deleting a .txt directly under BOOKS_DIR -- never
+        // /bookmarks.json, /www/*, ".." traversal or (on SD) an absolute path.
+        if (!core::isBookPath(path.c_str(), BOOKS_DIR)) {
+            req->send(400, "application/json", "{\"ok\":false,\"error\":\"invalid path\"}");
+            return;
+        }
         bool ok = _storage.remove(path);
         req->send(ok ? 200 : 500, "application/json",
                   ok ? "{\"ok\":true}" : "{\"ok\":false}");
@@ -102,6 +109,10 @@ void WebPortal::registerRoutes() {
     _server->on("/api/bookmarks", HTTP_GET, [this](AsyncWebServerRequest *req) {
         if (!req->hasParam("path")) { req->send(400); return; }
         String path = req->getParam("path")->value();
+        if (!core::isBookPath(path.c_str(), BOOKS_DIR)) {   // S5
+            req->send(400, "application/json", "{\"error\":\"invalid path\"}");
+            return;
+        }
         JsonDocument doc;
         JsonArray arr = doc["bookmarks"].to<JsonArray>();
         for (auto &m : _bookmarks.listBookmarks(path)) {
@@ -120,6 +131,10 @@ void WebPortal::registerRoutes() {
             req->send(400); return;
         }
         String path   = req->getParam("path", true)->value();
+        if (!core::isBookPath(path.c_str(), BOOKS_DIR)) {   // S5
+            req->send(400, "application/json", "{\"ok\":false,\"error\":\"invalid path\"}");
+            return;
+        }
         uint32_t off  = req->getParam("offset", true)->value().toInt();
         String label  = req->hasParam("label", true)
                           ? req->getParam("label", true)->value() : "Bookmark";

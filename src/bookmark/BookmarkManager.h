@@ -8,6 +8,7 @@
 // ===========================================================================
 #include <Arduino.h>
 #include <FS.h>
+#include <string>
 #include <vector>
 
 struct Bookmark {
@@ -40,6 +41,6 @@ public:
 
 private:
     fs::FS &_fs;
-    String  _json;                                  // in-memory document cache
+    std::string _json;                              // in-memory document cache
     bool    _load();
 };

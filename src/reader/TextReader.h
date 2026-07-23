@@ -11,6 +11,7 @@
 #include "display/DisplayManager.h"
 #include "storage/BookStorage.h"
 #include "bookmark/BookmarkManager.h"
+#include "core/Paginator.h"
 
 class TextReader {
 public:
@@ -28,9 +29,9 @@ public:
 
     void setFontSize(uint8_t size);     // 0..2, triggers relayout
 
-    uint32_t currentOffset() const { return _pageStart; }
-    int      pageIndex() const { return _pageIndex; }
-    int      currentPageNumber() const { return _pageIndex + 1; }
+    uint32_t currentOffset() const { return _pager.start(); }
+    int      pageIndex() const { return _pager.index(); }
+    int      currentPageNumber() const { return _pager.index() + 1; }
     int      estimatedTotalPages() const;
     const String &bookName() const { return _bookName; }
 
@@ -45,9 +46,7 @@ private:
     String   _bookPath;
     String   _bookName;
     uint32_t _fileSize   = 0;
-    uint32_t _pageStart  = 0;           // byte offset of current page
     uint32_t _pageEnd    = 0;           // byte offset after current page
-    int      _pageIndex  = 0;
     uint8_t  _fontSize   = DEFAULT_FONT_SIZE;
-    std::vector<uint32_t> _pageOffsets; // cache of visited page boundaries
+    core::Paginator _pager;             // page-offset table + navigation (seam)
 };

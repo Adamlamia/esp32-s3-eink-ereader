@@ -15,6 +15,8 @@
 #include "reader/TextReader.h"
 #include "web/WebPortal.h"
 #include "usb/UsbMassStorage.h"
+#include "core/BatteryMath.h"
+#include "core/Format.h"
 
 DisplayManager   display;
 BookStorage      storage;
@@ -35,17 +37,16 @@ static int      g_menuSel        = 0;      // highlighted menu item
 // cannot be read while Wi-Fi is active (it returns 0). Callers therefore only
 // sample while the Wi-Fi portal is off and keep the last good reading.
 static int readBatteryPercent() {
-    uint32_t mv = analogReadMilliVolts(BATTERY_ADC_PIN) * BATTERY_DIVIDER;
-    // Li-ion: ~3.3V empty, ~4.2V full.
-    int pct = (int)((mv - 3300) * 100 / (4200 - 3300));
-    return constrain(pct, 0, 100);
+    // S1: keep the divider-corrected voltage SIGNED. batteryPercentFromMv does
+    // the (mv - 3300) subtraction in int, so a battery below 3300 mV clamps to
+    // 0% instead of underflowing a uint and reporting 100%. (seam: BatteryMath.h)
+    int mv = (int)(analogReadMilliVolts(BATTERY_ADC_PIN) * BATTERY_DIVIDER);
+    return core::batteryPercentFromMv(mv);
 }
 
 // --- Human-readable byte sizes (e.g. "1.2 MB") -----------------------------
 static String humanSize(uint64_t bytes) {
-    if (bytes < 1024ULL) return String((uint32_t)bytes) + " B";
-    if (bytes < 1024ULL * 1024) return String(bytes / 1024.0, 1) + " KB";
-    return String(bytes / 1024.0 / 1024.0, 1) + " MB";
+    return String(core::humanSize(bytes).c_str());   // seam: core/Format.h
 }
 
 // --- Small centred helper (compact reading font) ---------------------------
