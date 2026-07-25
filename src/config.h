@@ -8,7 +8,8 @@
 
 // --- Firmware -------------------------------------------------------------
 #define FW_NAME     "ESP32-S3 E-Ink E-Reader"
-#define FW_VERSION  "0.1.0"
+#define FW_VERSION  "0.2.0"
+#define OWNER_NAME  "Adam"               // shown on the boot greeting screen
 
 // --- Wi-Fi ----------------------------------------------------------------
 // The reader boots into a self-hosted Access Point so you can reach the

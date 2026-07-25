@@ -8,6 +8,7 @@
 //    4. Handle buttons for page turns / bookmarks; light-sleep when idle.
 // ===========================================================================
 #include <Arduino.h>
+#include <Preferences.h>
 #include "config.h"
 #include "display/DisplayManager.h"
 #include "storage/BookStorage.h"
@@ -31,6 +32,7 @@ static bool     g_inLibrary      = false;  // true while the library/catalog is 
 static int      g_librarySel     = 0;      // highlighted book in the library list
 static bool     g_inMenu         = false;  // true while the reading menu overlay is up
 static int      g_menuSel        = 0;      // highlighted menu item
+static Preferences g_prefs;                // NVS-backed user settings (font size)
 
 // --- Battery ---------------------------------------------------------------
 // NOTE: on the ESP32-S3 the battery pin (GPIO14) is an ADC2 channel, and ADC2
@@ -57,7 +59,8 @@ static void drawSmallCentered(int y, const String &s) {
 
 // Forward decl: the library's Wi-Fi row selects this, which is defined below.
 static void toggleWebPortal();
-static int  libraryItemCount();   // books + 1 (virtual Wi-Fi row), defined below
+static void toggleReaderFontSize();  // library's last row: font size toggle
+static int  libraryItemCount();   // books + 2 (virtual Wi-Fi + font rows), defined below
 
 // --- Show the on-device library / catalog ---------------------------------
 static void showLibraryScreen() {
@@ -100,6 +103,7 @@ static void showLibraryScreen() {
         drawSmallCentered(y + 20, "No books yet.");
         drawSmallCentered(y + 54,
             "Join Wi-Fi '" AP_SSID "', open http://" WEB_HOSTNAME ".local, drop .txt files.");
+        y += 88;
     } else {
         for (size_t i = 0; i < books.size() && i < 10; i++) {
             String name = books[i].name;
@@ -117,6 +121,19 @@ static void showLibraryScreen() {
             y += lh;
         }
     }
+    // Last row is a virtual font-size toggle (like the Wi-Fi row above); the
+    // whole list redraws in the new size, so the effect is visible immediately.
+    {
+        String fontRow = String("Font size: ")
+                       + (display.readerFontSmall() ? "Small" : "Normal");
+        if (g_librarySel == libraryItemCount() - 1)
+            display.drawSelectionBox(MARGIN_X - 12,
+                y - display.readerAscender() - 4,
+                display.usableWidth() + 24,
+                display.readerLineHeight() + 10);
+        display.drawBookText(MARGIN_X, y, fontRow);
+        y += lh;
+    }
     display.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 40,
         "Tap = move    Hold = open / toggle");
     display.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16,
@@ -124,9 +141,10 @@ static void showLibraryScreen() {
     display.flush(true);
 }
 
-// The library list carries one virtual row (index 0 = Wi-Fi toggle) above the
-// books, so the Wi-Fi upload portal stays reachable now that hold = select.
-static int libraryItemCount() { return (int)storage.listBooks().size() + 1; }
+// The library list carries two virtual rows around the books: index 0 is the
+// Wi-Fi toggle and the last index is the font-size toggle, so both settings
+// stay reachable now that hold = select.
+static int libraryItemCount() { return (int)storage.listBooks().size() + 2; }
 
 // Move the highlight through the list (wraps around) and redraw.
 static void moveLibrarySelection(int delta) {
@@ -137,9 +155,14 @@ static void moveLibrarySelection(int delta) {
     showLibraryScreen();
 }
 
-// Act on the highlighted row: row 0 toggles Wi-Fi, the rest open a book.
+// Act on the highlighted row: row 0 toggles Wi-Fi, the last row toggles the
+// font size, the rows in between open a book.
 static void librarySelect() {
     if (g_librarySel == 0) { toggleWebPortal(); return; }   // virtual Wi-Fi row
+    if (g_librarySel == libraryItemCount() - 1) {            // virtual font row
+        toggleReaderFontSize();
+        return;
+    }
     auto books = storage.listBooks();
     int  bookIdx = g_librarySel - 1;                        // -1: row 0 is Wi-Fi
     if (books.empty() || bookIdx < 0 || bookIdx >= (int)books.size() || !reader) {
@@ -195,6 +218,16 @@ static void toggleWebPortal() {
     if (g_inLibrary)                             showLibraryScreen();
     else if (reader && reader->bookName().length()) reader->render();
     else                                         showLibraryScreen();
+}
+
+// Toggle the book body font between Normal (~14pt) and Small (~10pt). Persisted
+// in NVS; pages relayout automatically because pages are addressed by byte
+// offset and all body-text metrics come from DisplayManager.
+static void toggleReaderFontSize() {
+    bool small = !display.readerFontSmall();
+    display.setReaderFontSmall(small);
+    g_prefs.putBool("fontSmall", small);
+    showLibraryScreen();   // list redraws in the new size = instant preview
 }
 
 // --- Reading menu overlay (opened by holding the button) ------------------
@@ -318,7 +351,10 @@ void setup() {
     if (BTN_NEXT >= 0) pinMode(BTN_NEXT, INPUT_PULLUP);
 
     if (!display.begin()) Serial.println("[main] display init failed");
-    display.showMessage(FW_NAME, "Starting up...");
+
+    // Restore user settings (font size) from NVS before anything is drawn.
+    g_prefs.begin("reader");
+    display.setReaderFontSmall(g_prefs.getBool("fontSmall", false));
 
 #if ENABLE_USB_MSC
     // Hold BOOT while powering on to expose the microSD card as a USB drive.
@@ -349,9 +385,13 @@ void setup() {
     display.setWifiState(portal->isRunning());
     if (!portal->isRunning()) display.setBattery(readBatteryPercent());
 
-    // Resume the last opened book, else show the library.
-    String last = bookmarks->getLastOpenedBook();
-    if (last.length() && storage.exists(last) && reader->open(last, -1)) {
+    // Personalised greeting; resume the last opened book, else show the library.
+    String last     = bookmarks->getLastOpenedBook();
+    bool   resuming = last.length() && storage.exists(last);
+    display.showMessage("Welcome back, " OWNER_NAME,
+                        resuming ? "Continuing last book..."
+                                 : "Opening your library...");
+    if (resuming && reader->open(last, -1)) {
         reader->render();
     } else {
         showLibraryScreen();

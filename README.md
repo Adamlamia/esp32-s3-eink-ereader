@@ -6,10 +6,11 @@ A minimalist, hackable e-reader built on the **LILYGO T5 4.7" E-Paper S3**
 **self-hosted website** — just connect your laptop or phone to the reader's
 Wi-Fi and upload.
 
-> Status: **v0.1.0 — running on hardware.** Reading, word-wrap pagination,
-> bookmarks, the on-device menu/library and the Wi-Fi upload portal all work on
-> the LILYGO T5 4.7" S3. See the [Roadmap](docs/ROADMAP.md) for what's next and a
-> pile of ideas to make it your own.
+> Status: **v0.2.0 — running on hardware.** Reading, word-wrap pagination,
+> bookmarks, the on-device menu/library, selectable font size and the Wi-Fi
+> upload portal all work on the LILYGO T5 4.7" S3. See the
+> [Roadmap](docs/ROADMAP.md) for what's next and a pile of ideas to make it
+> your own.
 
 ---
 
@@ -21,8 +22,11 @@ Wi-Fi and upload.
 - **Book storage** — books live on the **microSD card** when present, and fall
   back to internal flash (LittleFS) otherwise. Big libraries welcome.
 - **Continue reading** — the last book and exact reading position are saved and
-  restored automatically on boot (e-ink keeps the last page on screen even with
-  the power off).
+  restored automatically on boot, behind a personalised welcome screen (e-ink
+  keeps the last page on screen even with the power off).
+- **Selectable font size** — two book text sizes (Georgia ~14 pt / ~10 pt),
+  toggled from the last row of the on-device library; the choice is remembered
+  across reboots.
 - **On-device menu & library** — hold the button while reading to open a menu
   (Resume · Library · Bookmark here · Wi-Fi on/off) and browse or switch books
   right on the device — no phone required.
@@ -106,8 +110,10 @@ by **how long you hold**:
 
 - The **menu** (Resume · Library · Bookmark here · Wi-Fi upload) opens with a
   long hold while reading.
-- The **library** lists your books; row 0 is a virtual **Wi-Fi upload: ON/OFF**
-  toggle. Tap to move the box, hold to open a book or flip Wi-Fi.
+- The **library** lists your books between two virtual rows: row 0 is a
+  **Wi-Fi upload: ON/OFF** toggle and the last row is a **Font size:
+  Normal/Small** toggle. Tap to move the box, hold to open a book or flip a
+  toggle.
 - A fast double-tap is *not* used: a full e-ink refresh (~0.8 s) blocks button
   polling, so hold-duration bands are used instead for reliable input.
 - Timings live in [`src/config.h`](src/config.h) (`BTN_PREVHOLD_MS`,

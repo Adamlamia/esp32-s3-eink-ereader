@@ -6,11 +6,17 @@
 
 #include "epd_driver.h"     // from LilyGo-EPD47
 #include "firasans.h"       // bundled font in the LilyGo-EPD47 examples
-#include "ReaderFont.h"     // compact Georgia body font (generated)
+#include "ReaderFont.h"      // compact Georgia body font (generated, ~14pt)
+#include "ReaderFontSmall.h" // smaller Georgia body font (generated, ~10pt)
 
 // Grayscale levels used across the UI (0 = black, 255 = white).
 static const uint8_t INK   = 0;
 static const uint8_t PAPER = 255;
+
+// Active book/body font for the current size selection.
+static const GFXfont *readerFontFor(bool small) {
+    return small ? &ReaderFontSmall : &ReaderFont;
+}
 
 bool DisplayManager::begin() {
     epd_init();
@@ -52,12 +58,12 @@ int DisplayManager::lineHeightFor(uint8_t fontSize) const {
     }
 }
 
-int DisplayManager::readerLineHeight() const { return ReaderFont.advance_y; }
-int DisplayManager::readerAscender()   const { return ReaderFont.ascender;  }
+int DisplayManager::readerLineHeight() const { return readerFontFor(_readerSmall)->advance_y; }
+int DisplayManager::readerAscender()   const { return readerFontFor(_readerSmall)->ascender;  }
 
 int DisplayManager::textWidth(const String &text, bool book) const {
     if (!text.length()) return 0;
-    const GFXfont *f = book ? &ReaderFont : (const GFXfont *)&FiraSans;
+    const GFXfont *f = book ? readerFontFor(_readerSmall) : (const GFXfont *)&FiraSans;
     int32_t cx = 0, cy = 0, x1, y1, w, h;
     get_text_bounds((GFXfont *)f, text.c_str(), &cx, &cy, &x1, &y1, &w, &h, NULL);
     return (int)w;
@@ -75,7 +81,7 @@ void DisplayManager::drawText(int x, int y, const String &text, uint8_t /*fontSi
 
 void DisplayManager::drawBookText(int x, int y, const String &text) {
     int cx = x, cy = y;
-    writeln((GFXfont *)&ReaderFont, text.c_str(), &cx, &cy, _framebuffer);
+    writeln((GFXfont *)readerFontFor(_readerSmall), text.c_str(), &cx, &cy, _framebuffer);
 }
 
 void DisplayManager::drawTextCentered(int y, const String &text, uint8_t fontSize) {

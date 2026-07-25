@@ -24,12 +24,17 @@ public:
     // Bold outline box used to make the selected menu / library row obvious.
     void drawSelectionBox(int x, int y, int w, int h, int thickness = 3);
 
-    // Compact reading font (Georgia ~14pt) used for book body + status bar.
+    // Compact reading font (Georgia) used for book body + status bar.
+    // Two generated sizes: normal (~14pt) and small (~10pt), user-selectable.
     void drawBookText(int x, int y, const String &text);
     int  readerLineHeight() const;      // advance_y of the reading font
     int  readerAscender()   const;      // baseline offset of the reading font
     // Pixel width of a string; book=true measures with the reading font.
     int  textWidth(const String &text, bool book) const;
+
+    // Reader font size selection (persisted by the caller).
+    void setReaderFontSmall(bool small) { _readerSmall = small; }
+    bool readerFontSmall() const { return _readerSmall; }
 
     // High-level screens
     void showMessage(const String &title, const String &body);
@@ -52,4 +57,5 @@ private:
     int      _pagesSinceFullRefresh = 0;
     bool     _wifiOn = false;
     int      _batteryPct = 100;
+    bool     _readerSmall = false;          // false = normal, true = small body font
 };
