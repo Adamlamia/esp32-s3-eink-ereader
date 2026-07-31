@@ -94,6 +94,11 @@ void CalendarApp::onEnter() {
     _view   = View::Today;      // always land on Today
     _screen = Screen::Views;
     _page   = 0;
+    _bootNtpTried = false;      // R4: re-arm the one-shot so re-entering the
+                                // app retries NTP if an earlier attempt failed
+                                // (Wi-Fi down at boot etc.). Cheap when the
+                                // clock is already valid: the first loop tick
+                                // consumes the latch without touching Wi-Fi.
     renderCurrent();
 }
 
