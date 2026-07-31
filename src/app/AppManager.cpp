@@ -7,6 +7,7 @@
 // ===========================================================================
 #include "app/AppManager.h"
 #include "core/BatteryMath.h"
+#include "core/ButtonClassify.h"
 
 // --- Construction ----------------------------------------------------------
 AppManager::AppManager(SystemContext &ctx)
@@ -97,11 +98,10 @@ void AppManager::handleButtonRaw() {
         _longFired  = false;
 
     } else if (nowDown && _btnDown) {
-        // ---- Being held: check long-press threshold ----
-        if (!_longFired && now - _btnPressMs >= BTN_LONGPRESS_MS) {
+        // ---- Being held: check long-press threshold (seam: ButtonClassify) ----
+        if (!_longFired && core::isLongPress(now - _btnPressMs, BTN_LONGPRESS_MS)) {
             _longFired = true;
             _lastActivityMs = now;
-            // Dispatch LongHold
             if (_state == State::Launcher) {
                 activateApp(_launcherSel);
             } else if (_activeApp) {
@@ -110,23 +110,26 @@ void AppManager::handleButtonRaw() {
         }
 
     } else if (!nowDown && _btnDown) {
-        // ---- Release ----
+        // ---- Release: classify via seam ----
         _btnDown = false;
         uint32_t held = now - _btnPressMs;
-        if (!_longFired && held >= BTN_DEBOUNCE_MS) {
-            _lastActivityMs = now;
-            if (_state == State::Launcher) {
-                // Launcher only uses Tap (move selection); MediumHold ignored.
-                if (held < BTN_PREVHOLD_MS) {
-                    _launcherSel++;
-                    if (_launcherSel >= _appCount) _launcherSel = 0;
-                    drawLauncher();
+        if (!_longFired) {
+            core::Gesture g = core::classifyRelease(held, BTN_DEBOUNCE_MS,
+                                                    BTN_PREVHOLD_MS, BTN_LONGPRESS_MS);
+            if (g != core::Gesture::None) {
+                _lastActivityMs = now;
+                if (_state == State::Launcher) {
+                    // Launcher only uses Tap (move selection); MediumHold ignored.
+                    if (g == core::Gesture::Tap) {
+                        _launcherSel = core::wrapSelection(_launcherSel, 1, _appCount);
+                        drawLauncher();
+                    }
+                } else if (_activeApp) {
+                    if (g == core::Gesture::MediumHold)
+                        _activeApp->onButton(ButtonEvent::MediumHold);
+                    else
+                        _activeApp->onButton(ButtonEvent::Tap);
                 }
-            } else if (_activeApp) {
-                if (held >= BTN_PREVHOLD_MS)
-                    _activeApp->onButton(ButtonEvent::MediumHold);
-                else
-                    _activeApp->onButton(ButtonEvent::Tap);
             }
         }
     }
