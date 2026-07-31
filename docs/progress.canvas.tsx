@@ -2,15 +2,15 @@ export default function MultiAppFrameworkProgress() {
   const rounds = [
     { id: 1, pattern: "Scaffolding", scope: "App.h, SystemContext.h, AppManager stubs, AppRegistry, ReaderApp stubs, config", status: "done", note: "7 files created, build SUCCESS, 3 commits" },
     { id: 2, pattern: "Implementation", scope: "AppManager logic, ReaderApp migration, main.cpp rewrite", status: "done", note: "Full framework live, flashed to device, 3 commits" },
-    { id: 3, pattern: "Test Generation", scope: "ButtonClassify seam extraction, native unit tests", status: "pending", note: "" },
-    { id: 4, pattern: "Review & Fix", scope: "CSPMO review, deferred-work ledger, final verification", status: "pending", note: "" },
+    { id: 3, pattern: "Test Generation", scope: "ButtonClassify seam extraction, native unit tests", status: "done", note: "24 new tests, 56 total pass, seam extracted, 2 commits" },
+    { id: 4, pattern: "Review & Fix", scope: "CSPMO review, deferred-work ledger, final verification", status: "done", note: "0 Critical, 2 Suggestion fixed, build+tests green, 1 commit" },
   ];
 
   const milestones = [
     { name: "Framework skeleton", progress: 100, rounds: "R1", doneWhen: "App.h + AppManager + AppRegistry compile, existing build unbroken" },
     { name: "Full implementation", progress: 100, rounds: "R2", doneWhen: "Launcher shows, e-reader works identically, main.cpp < 100 lines" },
-    { name: "Unit tests", progress: 0, rounds: "R3", doneWhen: "pio test -e native passes with new framework tests" },
-    { name: "Review & hardening", progress: 0, rounds: "R4", doneWhen: "Zero Critical findings, deferred-work ledger compiled" },
+    { name: "Unit tests", progress: 100, rounds: "R3", doneWhen: "pio test -e native passes with new framework tests" },
+    { name: "Review & hardening", progress: 100, rounds: "R4", doneWhen: "Zero Critical findings, deferred-work ledger compiled" },
   ];
 
   const verificationTimeline = [
@@ -18,6 +18,10 @@ export default function MultiAppFrameworkProgress() {
     { round: 1, what: "pio test -e native", result: "BLOCKED — no host GCC on machine (pre-existing)" },
     { round: 2, what: "pio run -e lilygo_t5_47_s3", result: "SUCCESS — 0 errors, RAM 14.3%, Flash 26.5%" },
     { round: 2, what: "pio run -t upload", result: "SUCCESS — flashed to device, 1110736 bytes" },
+    { round: 3, what: "pio test -e native", result: "SUCCESS — 56 tests passed (32 existing + 24 new)" },
+    { round: 3, what: "pio run -e lilygo_t5_47_s3", result: "SUCCESS — seam extraction compiles clean" },
+    { round: 4, what: "pio run -e lilygo_t5_47_s3", result: "SUCCESS — 0 errors after review fixes" },
+    { round: 4, what: "pio test -e native", result: "SUCCESS — 56 tests passed" },
   ];
 
   const commits = [
@@ -27,6 +31,9 @@ export default function MultiAppFrameworkProgress() {
     { hash: "b6b8c2d", msg: "feat(app): implement AppManager lifecycle, button dispatch, and system tasks" },
     { hash: "1cfe7c9", msg: "feat(reader): migrate e-reader logic from main.cpp into ReaderApp" },
     { hash: "8df45d7", msg: "refactor(main): slim bootstrap — delegate all logic to AppManager" },
+    { hash: "99fafcc", msg: "refactor(core): extract ButtonClassify.h pure-logic seam from AppManager" },
+    { hash: "1be37cf", msg: "test(app-framework): add 24 unit tests for ButtonClassify seam" },
+    { hash: "63eeb85", msg: "fix(review): remove unused include, add defensive null check in ReaderApp" },
   ];
 
   const techStack = [
@@ -45,11 +52,11 @@ export default function MultiAppFrameworkProgress() {
     { decision: "Back-to-home via app-level menu", status: "Resolved", notes: "LongHold opens app menu, 'Back to Home' item calls requestHome()" },
     { decision: "Compile-time app registration", status: "Resolved", notes: "AppRegistry.h — one line per branch, additive merges" },
     { decision: "requestHome() mechanism", status: "Resolved", notes: "SystemContext.manager pointer → AppManager::requestHome() flag" },
-    { decision: "Host GCC for native tests", status: "Open", notes: "Machine lacks gcc/g++ in PATH — needed for R3" },
+    { decision: "Host GCC for native tests", status: "Resolved", notes: "Installed MSYS2 + mingw-w64-x86_64-gcc 16.1.0 via winget" },
   ];
 
   const risks = [
-    { risk: "No host GCC toolchain", impact: "R3 native tests cannot run", mitigation: "Install MinGW-w64 or MSYS2 before R3" },
+    { risk: "No host GCC toolchain", impact: "RESOLVED", mitigation: "Installed MSYS2 mingw-w64-gcc 16.1.0 — tests run green" },
     { risk: "E-ink ghosting on launcher", impact: "Visual quality", mitigation: "drawLauncher uses flush(true) full refresh" },
     { risk: "WebPortal BookmarkManager duplication", impact: "Two BookmarkManager instances (boot + ReaderApp)", mitigation: "Acceptable — boot instance is static, ReaderApp creates its own on onEnter" },
   ];
@@ -60,8 +67,8 @@ export default function MultiAppFrameworkProgress() {
         Multi-App Framework — Progress Canvas
       </h1>
       <p style={{ color: "#555", fontSize: 13 }}>
-        Status: <strong>Round 2 complete</strong> | Last updated: 2026-08-01 | Round 2/4 |
-        Next action: <strong style={{ color: "#e63946" }}>Install host GCC, then hand over Round 3 (Test Generation)</strong>
+        Status: <strong>All 4 rounds complete — framework ready for feature branches</strong> | Last updated: 2026-08-01 | Round 4/4 |
+        Next action: <strong style={{ color: "#2a9d8f" }}>Create feature branches (feature/weather, feature/todo, etc.)</strong>
       </p>
 
       <h2 style={{ fontSize: 16, marginTop: 24 }}>Milestones</h2>
@@ -201,7 +208,7 @@ export default function MultiAppFrameworkProgress() {
       <div style={{ fontSize: 13, lineHeight: 1.8 }}>
         <p>✅ <strong>Architecture design approved</strong> — confirmed in planning session</p>
         <p>✅ <strong>Firmware flashed to device</strong> — R2 upload SUCCESS (1110736 bytes)</p>
-        <p style={{ color: "#e63946" }}>🟡 <strong>Host GCC toolchain</strong> — Act: before Round 3. How: install MinGW-w64 or MSYS2, ensure g++ is in PATH. If skipped: R3 native tests return BLOCKED.</p>
+        <p>✅ <strong>Host GCC toolchain</strong> — MSYS2 mingw-w64-gcc 16.1.0 installed, 56 tests green</p>
       </div>
     </div>
   );
