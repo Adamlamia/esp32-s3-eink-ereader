@@ -117,6 +117,21 @@
 // src/apps/calendar/CalendarStore.
 #define CAL_CACHE_FILE       "/calendar.json"
 
+// Round 3: scheduled-sync + power management (see core/SyncSchedule.h and
+// CalendarApp::onLoop). All three tune the automatic daily sync:
+//   CAL_MIN_BATTERY_FOR_SYNC  skip AUTO/boot syncs below this battery % so a
+//                             near-empty device never lights up the radio for a
+//                             non-essential fetch (manual "Sync now" still works).
+//   CAL_SYNC_STALE_SEC        backstop: force a resync once the cache is at
+//                             least this old, even if the daily hour was missed.
+//   CAL_WAKE_CAP_SEC          max light-sleep timer the Calendar app requests
+//                             (AppManager caps sleepWakeupSec() at this) so the
+//                             device wakes periodically to re-check the schedule
+//                             and battery instead of sleeping straight to 06:00.
+#define CAL_MIN_BATTERY_FOR_SYNC 15            // % battery floor for auto/boot syncs
+#define CAL_SYNC_STALE_SEC       (20 * 3600)   // resync backstop: 20 h since last sync
+#define CAL_WAKE_CAP_SEC         (6 * 3600)    // max scheduled wakeup interval: 6 h
+
 // ICS feeds + Wi-Fi credentials are SECRETS and live in src/secrets.h
 // (git-ignored, #included above via __has_include). Create that file with,
 // for n = 0..CAL_MAX_CALENDARS-1 (every line optional and individually
