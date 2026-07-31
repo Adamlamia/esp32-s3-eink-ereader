@@ -159,7 +159,15 @@ CalendarSyncResult CalendarSync::runInternal() {
         http.setTimeout(SYNC_HTTP_TIMEOUT_MS);
         if (http.begin(client, feeds[fi].url)) {
             int code = http.GET();
-            if (code == HTTP_CODE_OK) {
+            // R4: when Content-Length is known, reject oversized bodies
+            // BEFORE allocating them — getString() would otherwise pull the
+            // whole (possibly multi-MB) body onto the heap first. Chunked or
+            // unknown sizes (-1) are still caught by the post-fetch check.
+            int declared = http.getSize();
+            if (code == HTTP_CODE_OK && declared > (int)SYNC_BODY_MAX) {
+                Serial.printf("[CalSync] feed %d: body too large (%d bytes)\n",
+                              feeds[fi].idx, declared);
+            } else if (code == HTTP_CODE_OK) {
                 String body = http.getString();
                 if (body.length() > 0 && body.length() <= SYNC_BODY_MAX) {
                     // NOTE: parseIcsFeed unfolds into its own 8 KB buffer and
