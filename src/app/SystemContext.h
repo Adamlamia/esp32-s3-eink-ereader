@@ -8,9 +8,11 @@
 // ===========================================================================
 #include <Arduino.h>
 #include <Preferences.h>
+#include "config.h"
 #include "display/DisplayManager.h"
 #include "storage/BookStorage.h"
 #include "web/WebPortal.h"
+#include "core/BatteryMath.h"
 
 // Forward-declare to avoid circular includes; apps that need the manager
 // (e.g. to call requestHome()) include AppManager.h themselves.
@@ -26,7 +28,9 @@ struct SystemContext {
 
     // --- Convenience -------------------------------------------------------
     // Read the battery ADC and return a percentage. Respects the ADC2/Wi-Fi
-    // constraint (returns the cached value while Wi-Fi is active).
-    // TODO(R2): implement — move logic from main.cpp's readBatteryPercent().
-    int readBattery();
+    // constraint (callers should skip this while Wi-Fi is active).
+    int readBattery() {
+        int mv = (int)(analogReadMilliVolts(BATTERY_ADC_PIN) * BATTERY_DIVIDER);
+        return core::batteryPercentFromMv(mv);
+    }
 };

@@ -31,6 +31,7 @@ public:
 
     // --- App → Manager communication ---
     void requestHome(); // active app asks to return to the launcher
+    void setWebUserManaged(bool managed) { _webUserManaged = managed; }
 
     // --- Accessors ---
     int  appCount() const { return _appCount; }
