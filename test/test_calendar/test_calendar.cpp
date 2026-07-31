@@ -68,6 +68,42 @@ void test_date_leap_year(void) {
     TEST_ASSERT_EQUAL_UINT(1, d);
 }
 
+void test_date_civil_january_february_year(void) {
+    // REGRESSION (R4): civilFromDays must restore the year for Jan/Feb dates.
+    // Hinnant's algorithm counts Jan/Feb as months 13/14 of the PREVIOUS
+    // March-based year (daysFromCivil does y -= m <= 2); the inverse must add
+    // it back. It did not, so every Jan/Feb instant rendered with year-1
+    // (2027-01-15 showed as 2026-01-15) while Mar..Dec were correct. None of
+    // the older anchors exercised Jan/Feb (Aug + Mar only), hiding the bug.
+    int64_t y; unsigned m, d;
+    civilFromDays(0, y, m, d);                    // day 0 == 1970-01-01
+    TEST_ASSERT_EQUAL_INT64(1970, y);
+    TEST_ASSERT_EQUAL_UINT(1, m);
+    TEST_ASSERT_EQUAL_UINT(1, d);
+
+    // Civil round-trips for a January and a leap-day February instant.
+    int64_t yy; unsigned mm, dd, hh, mi, ss;
+    int64_t jan = epochFromCivil(2027, 1, 15, 3, 0, 0, 0);
+    civilFromUtc(jan, 0, yy, mm, dd, hh, mi, ss);
+    TEST_ASSERT_EQUAL_INT64(2027, yy);
+    TEST_ASSERT_EQUAL_UINT(1, mm);
+    TEST_ASSERT_EQUAL_UINT(15, dd);
+    TEST_ASSERT_EQUAL_UINT(3, hh);
+
+    int64_t feb = epochFromCivil(2024, 2, 29, 23, 59, 59, TZ);
+    civilFromUtc(feb, TZ, yy, mm, dd, hh, mi, ss);
+    TEST_ASSERT_EQUAL_INT64(2024, yy);            // leap day keeps its year
+    TEST_ASSERT_EQUAL_UINT(2, mm);
+    TEST_ASSERT_EQUAL_UINT(29, dd);
+    TEST_ASSERT_EQUAL_UINT(23, hh);
+
+    // Mar..Dec unchanged (guard against over-correcting the fix).
+    int64_t aug = epochFromCivil(2026, 8, 3, 0, 0, 0, 0);
+    civilFromUtc(aug, 0, yy, mm, dd, hh, mi, ss);
+    TEST_ASSERT_EQUAL_INT64(2026, yy);
+    TEST_ASSERT_EQUAL_UINT(8, mm);
+}
+
 void test_date_weekday_sequence(void) {
     // Mon..Sun from the anchor week.
     for (int i = 0; i < 7; ++i) {
@@ -569,6 +605,7 @@ int main(int argc, char **argv) {
     RUN_TEST(test_date_epoch_roundtrip_utc);
     RUN_TEST(test_date_epoch_roundtrip_offset);
     RUN_TEST(test_date_leap_year);
+    RUN_TEST(test_date_civil_january_february_year);
     RUN_TEST(test_date_weekday_sequence);
     RUN_TEST(test_date_daystart_offset);
 

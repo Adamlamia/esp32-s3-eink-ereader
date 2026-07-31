@@ -44,6 +44,11 @@ inline void civilFromDays(int64_t z, int64_t &y, unsigned &m, unsigned &d) {
     const unsigned mp  = (5 * doy + 2) / 153;                       // [0, 11]
     d = doy - (153 * mp + 2) / 5 + 1;                               // [1, 31]
     m = mp + (mp < 10 ? 3 : -9);                                    // [1, 12]
+    y += (m <= 2);   // Jan/Feb are months 13/14 of the PREVIOUS March-based
+                     // year (see daysFromCivil's y -= m <= 2); restore the
+                     // true year. R4 fix: this line was missing, so every
+                     // Jan/Feb date rendered with year-1 (2027-01-15 showed
+                     // as 2026-01-15) while Mar..Dec were correct.
 }
 
 // --- Epoch <-> civil -------------------------------------------------------
