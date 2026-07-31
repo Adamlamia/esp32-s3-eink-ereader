@@ -244,7 +244,7 @@ CalendarSyncResult CalendarSync::run() {
 
     // The wait is bounded in practice: the session has internal timeouts
     // (Wi-Fi <= 15 s, NTP <= 15 s, HTTP <= ~18 s per feed), so it cannot hang.
-    xSemaphoreTake(job.done, portMAX_WAIT);
+    xSemaphoreTake(job.done, portMAX_DELAY);
     vSemaphoreDelete(job.done);
     return r;
 }
