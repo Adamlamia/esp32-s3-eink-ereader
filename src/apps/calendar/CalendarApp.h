@@ -22,7 +22,15 @@
 //  wall clock is unknown until a sync runs NTP. The views anchor "today" at
 //  max(time(nullptr), lastSyncUtc) — the cache was materialised at the last
 //  sync instant, so the UI stays coherent even before the next NTP fix.
-//  TODO(R3): NTP refresh on boot + scheduled 06:00 (CAL_SYNC_HOUR) sync.
+//
+//  Round 3 adds the scheduled layer on top of that clock model:
+//    - first onLoop: if the clock is invalid (post power-cycle) and STA secrets
+//      exist, run a time-only NTP pass (CalendarSync::syncTimeOnly) so the
+//      scheduling math has a valid "now" to work with.
+//    - onLoop: core::shouldAutoSync() triggers the daily CAL_SYNC_HOUR (06:00)
+//      sync when due — portal- and battery-guarded, debounced per sync-day.
+//    - sleepWakeupSec(): asks AppManager for a timer wakeup until the next
+//      06:00 so the device wakes to sync even from light sleep.
 // ===========================================================================
 #include "app/App.h"
 #include "app/SystemContext.h"
@@ -44,7 +52,7 @@ public:
     void onButton(ButtonEvent ev) override;
 
     // --- Optional hooks ---
-    void onLoop(uint32_t nowMs) override;     // TODO(R3): scheduled sync tick
+    void onLoop(uint32_t nowMs) override;     // scheduled sync tick + boot NTP (R3)
     bool wantsSleep() override { return !_syncing; }   // stay awake mid-sync
 
 private:
@@ -71,6 +79,9 @@ private:
 
     // --- Helpers ---
     int64_t uiNowUtc() const;         // clock source for the views (see header)
+    int64_t clockNowUtc() const;      // real clock for scheduling (0 == invalid)
+    void    maybeBootNtp();           // one-shot NTP pass on an invalid boot clock (R3)
+    void    maybeAutoSync();          // daily scheduled sync when due (R3)
     String  lastSyncLine() const;
 
     // --- State ---
@@ -84,6 +95,10 @@ private:
     bool     _scrollRequest = false;  // MediumHold: advance one page on redraw
     int      _menuSel      = 0;
     bool     _syncing      = false;   // true only while CalendarSync::run() blocks
+
+    // --- Round 3 scheduling state ---
+    int64_t  _lastAutoSyncBoundary = 0;  // debounce: last sync-day boundary attempted
+    bool     _bootNtpTried = false;      // one-shot boot-NTP latch
 
     static const int MENU_COUNT = 2;  // Sync now, Back to Home
 };

@@ -13,6 +13,7 @@
 #include "CalendarSync.h"
 #include "app/AppManager.h"
 #include "core/CalendarDate.h"
+#include "core/SyncSchedule.h"
 
 #include <time.h>
 
@@ -103,9 +104,86 @@ void CalendarApp::onExit() {
 }
 
 void CalendarApp::onLoop(uint32_t /*nowMs*/) {
-    // TODO(R3): scheduled sync — when the local hour reaches CAL_SYNC_HOUR
-    // (06:00) and the cache is stale, run CalendarSync automatically (with a
-    // timer wakeup from light sleep + battery-sane pre-check).
+    // Round 3: scheduled sync + boot NTP. Both are no-ops without STA secrets
+    // (nothing to sync against), matching CalendarSync's own #if guards.
+#if defined(WIFI_STA_SSID) && defined(WIFI_STA_PASS)
+    maybeBootNtp();      // one-shot NTP pass if the boot clock is invalid
+    maybeAutoSync();     // daily CAL_SYNC_HOUR (06:00) sync when due
+#endif
+}
+
+// --- Round 3: clock source for scheduling ----------------------------------
+int64_t CalendarApp::clockNowUtc() const {
+    // TRUE UTC seconds for scheduling decisions. Distinct from uiNowUtc(), which
+    // falls back to lastSyncUtc for DISPLAY coherence: scheduling must use the
+    // real clock only, because a stale lastSyncUtc would compute nonsense
+    // boundaries. time() returns UTC once NTP has fixed the clock; before that it
+    // reads garbage near epoch 0, reported here as 0 == "not valid yet" so the
+    // caller defers to the boot-NTP path instead of syncing blindly.
+    int64_t t = (int64_t)time(nullptr);
+    return (t >= INT64_C(1700000000)) ? t : 0;
+}
+
+// --- Round 3: boot NTP (one-shot) ------------------------------------------
+void CalendarApp::maybeBootNtp() {
+    // One-shot: after a power cycle the RTC is empty, so the first loop tick
+    // with an invalid clock runs a time-only NTP pass. This gives the scheduler
+    // (shouldAutoSync / secondsUntilNextSync) a valid "now" without waiting for
+    // a manual "Sync now" — and without paying for a full ICS fetch.
+    if (_bootNtpTried) return;
+    if (clockNowUtc() > 0) { _bootNtpTried = true; return; }   // clock already valid
+
+    // Cheap pre-checks that do NOT consume the one-shot, so we retry next tick
+    // rather than lighting up the radio into a busy portal / on a low battery:
+    if (_ctx.portal && _ctx.portal->isRunning()) return;       // radio in use
+    if (_ctx.batteryPct < CAL_MIN_BATTERY_FOR_SYNC) return;    // battery too low
+
+    _bootNtpTried = true;                                      // consume the one-shot
+    Serial.println("[Calendar] boot clock invalid -> NTP time-only pass");
+    _ctx.display.showMessage("Calendar", "Syncing time (NTP)...");
+    _syncing = true;                                           // wantsSleep() false mid-pass
+    CalendarSync sync(_ctx);
+    CalendarSyncResult r = sync.syncTimeOnly();                // blocking; own 24 KB task
+    _syncing = false;
+    Serial.printf("[Calendar] boot NTP: ok=%d msg='%s'\n", (int)r.ok, r.message);
+
+    loadCache();                                               // re-read with a valid clock
+    _page = 0;
+    renderCurrent();                                           // re-anchor "today" on the fixed clock
+}
+
+// --- Round 3: scheduled auto-sync ------------------------------------------
+void CalendarApp::maybeAutoSync() {
+    int64_t now = clockNowUtc();
+    if (now <= 0) return;                          // no valid clock -> maybeBootNtp handles it
+
+    if (!core::shouldAutoSync(now, _lastSyncUtc, CAL_SYNC_HOUR,
+                              CAL_TZ_OFFSET_SEC, CAL_SYNC_STALE_SEC))
+        return;                                    // not due
+
+    // Debounce: one auto-sync ATTEMPT per local sync-day boundary. After a
+    // SUCCESSFUL sync, loadCache() advances _lastSyncUtc past the boundary and
+    // shouldAutoSync() goes false on its own; this latch stops a FAILED sync
+    // (no secrets / Wi-Fi down / all feeds failed) from re-triggering every
+    // loop iteration — it retries at the next daily boundary, or the user runs
+    // "Sync now" by hand.
+    int64_t boundary = core::syncHourBoundaryUtc(now, CAL_SYNC_HOUR, CAL_TZ_OFFSET_SEC);
+    if (now < boundary) boundary -= 86400;         // most recent boundary at/before now
+    if (boundary == _lastAutoSyncBoundary) return; // already attempted this sync-day
+
+    // Cheap pre-checks that must NOT consume the debounce slot, so we retry as
+    // soon as the condition clears instead of waiting a whole day. Battery is
+    // read from AppManager's cached _ctx.batteryPct (refreshed every 15 s) —
+    // ADC2 is unreadable while Wi-Fi is up, so it MUST be sampled before, never
+    // during, the sync.
+    if (_ctx.portal && _ctx.portal->isRunning()) return;        // radio in use by portal
+    if (_ctx.batteryPct < CAL_MIN_BATTERY_FOR_SYNC) return;     // battery too low
+
+    _lastAutoSyncBoundary = boundary;              // consume the slot -> attempt now
+    Serial.printf("[Calendar] auto-sync due (boundary=%lld lastSync=%lld batt=%d%%)\n",
+                  (long long)boundary, (long long)_lastSyncUtc, _ctx.batteryPct);
+    runSync();                                     // reuse the manual-sync path: RAII Wi-Fi,
+                                                   // portal-guarded, always restores WIFI_OFF
 }
 
 // --- Input -----------------------------------------------------------------
