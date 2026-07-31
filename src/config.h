@@ -100,6 +100,18 @@
 #define APP_LAUNCHER_TITLE  "Home"   // title shown on the launcher / home screen
 #define APP_MAX_COUNT       8        // max registered apps (static array in AppManager)
 
+// --- Calendar app ---------------------------------------------------------
+// Pure-logic calendar core (Round 1). Sizing constants for the header-only
+// seams in src/core/Calendar*.h; later rounds (SD cache, Wi-Fi/NTP/HTTP sync,
+// e-ink UI) build on these. No heap is used anywhere in the seams, so every
+// capacity below bounds a fixed static buffer.
+#define CAL_TZ_OFFSET_SEC    (8 * 3600)  // fixed UTC offset: Malaysia (MYT, UTC+8, no DST)
+#define CAL_MAX_EVENTS       64          // max concrete events held in memory / per sync
+#define CAL_TITLE_MAX        64          // event title buffer (chars, incl. NUL terminator)
+#define CAL_SYNC_HOUR        6           // hour-of-day (local) the daily sync is due
+#define CAL_SYNC_WINDOW_DAYS 14          // rolling window of days to materialise events for
+#define CAL_MAX_CALENDARS    4           // max ICS feeds (Google calendars) tracked
+
 // --- Power management -----------------------------------------------------
 #define IDLE_SLEEP_SECONDS  120  // enter light sleep after inactivity
 #define WEB_ACTIVE_MINUTES  10   // keep Wi-Fi/web alive this long after boot
