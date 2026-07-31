@@ -288,7 +288,7 @@ void ReaderApp::toggleWebPortal() {
     }
     delay(900);
     // Return to whichever screen we were on.
-    if (_screen == Screen::Menu)         { _screen = Screen::Reading; _reader->render(); }
+    if (_screen == Screen::Menu)         { _screen = Screen::Reading; if (_reader) _reader->render(); else showLibraryScreen(); }
     else if (_screen == Screen::Library) showLibraryScreen();
     else if (_reader && _reader->bookName().length()) { _screen = Screen::Reading; _reader->render(); }
     else                                 showLibraryScreen();

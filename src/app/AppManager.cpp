@@ -6,7 +6,6 @@
 //  event routing to the active app, and system tasks (battery, Wi-Fi, sleep).
 // ===========================================================================
 #include "app/AppManager.h"
-#include "core/BatteryMath.h"
 #include "core/ButtonClassify.h"
 
 // --- Construction ----------------------------------------------------------
