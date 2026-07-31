@@ -102,7 +102,8 @@ inline void icsDecodeText(const char *src, char *dst, int cap) {
 // Parse a fixed YYYYMMDD date (and optional T HHMMSS[ Z ]) starting at p.
 // On success writes y/m/d/hh/mm/ss, sets *outIsUtc when a trailing Z is seen,
 // and returns true. Returns false on any malformed field (short buffer,
-// non-digit, missing date).
+// non-digit, missing date, or an impossible date/time such as month 13,
+// Feb 30 or hour 25 — R4: those previously "parsed" into nonsense epochs).
 inline bool icsParseDateTime(const char *p, int64_t &y, unsigned &m, unsigned &d,
                              unsigned &hh, unsigned &mm, unsigned &ss, bool &outIsUtc) {
     const char *s = p;
@@ -118,6 +119,15 @@ inline bool icsParseDateTime(const char *p, int64_t &y, unsigned &m, unsigned &d
         s = p; ss = (unsigned)icsParseDigits(&p, 2); if (p - s != 2) return false;
         if (*p == 'Z') outIsUtc = true;
     }
+    // Range-validate the time-of-day (ss <= 60 tolerates a leap second).
+    if (hh > 23 || mm > 59 || ss > 60) return false;
+    // Range-validate the date via a civil round-trip: daysFromCivil silently
+    // normalises overflow (month 13, Feb 30, ...), so an exact inverse proves
+    // the fields name a real proleptic Gregorian day. Pure integer math, no
+    // <ctime> (see CalendarDate.h).
+    int64_t cy; unsigned cm, cd;
+    civilFromDays(daysFromCivil(y, m, d), cy, cm, cd);
+    if (cy != y || cm != m || cd != d) return false;
     return true;
 }
 
