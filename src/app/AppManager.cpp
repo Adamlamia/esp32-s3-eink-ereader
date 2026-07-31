@@ -201,6 +201,11 @@ void AppManager::systemTasks(uint32_t now) {
             if (wakeSec >= 0) {
                 esp_sleep_enable_timer_wakeup((uint64_t)wakeSec * 1000000ULL);
                 Serial.printf("[AppManager] timer wakeup armed in %ld s\n", (long)wakeSec);
+            } else {
+                // No app needs a timer: clear any previously-armed timer source so
+                // this sleep is strictly button-only (the timer config lives in the
+                // RTC domain and would otherwise survive into later sleeps).
+                esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
             }
 
             esp_light_sleep_start();
