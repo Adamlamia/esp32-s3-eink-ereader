@@ -35,6 +35,52 @@ static const int     SYNC_HTTP_CONNECT_MS = 8000;
 static const size_t  SYNC_TASK_STACK_BYTES = 24 * 1024;  // see header (8 KB parse buf + TLS)
 
 // ===========================================================================
+//  Shared STA + NTP plumbing (reused by run() and syncTimeOnly())
+// ===========================================================================
+#if defined(WIFI_STA_SSID) && defined(WIFI_STA_PASS)
+// Bring up STA-only Wi-Fi and obtain a valid NTP time. Returns true and sets
+// nowUtc (TRUE UTC epoch seconds) on success; on failure returns false with a
+// short readable reason in msg. The CALLER owns the radio lifecycle (holds the
+// RAII WifiOffGuard), so this never leaves Wi-Fi on by itself.
+//
+// Clock convention: configTime()'s gmtOffset only steers localtime(); once NTP
+// has fixed the clock, time(nullptr) returns TRUE UTC epoch seconds directly.
+// We therefore use it with NO offset subtraction — this matches the true-UTC
+// convention of the ICS parser and the core date seams (see header; this
+// corrects a Round-2 latent bug that subtracted CAL_TZ_OFFSET_SEC here).
+bool CalendarSync::staNtp(int64_t &nowUtc, char *msg, size_t msgLen) {
+    // --- STA-only Wi-Fi ---
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(WIFI_STA_SSID, WIFI_STA_PASS);
+    Serial.println("[CalSync] joining Wi-Fi (STA)...");
+    int tries = 0;
+    while (WiFi.status() != WL_CONNECTED && tries++ < SYNC_WIFI_TRIES) delay(500);
+    if (WiFi.status() != WL_CONNECTED) {
+        if (msg) snprintf(msg, msgLen, "Wi-Fi connect failed");
+        Serial.printf("[CalSync] Wi-Fi connect failed (status %d)\n", WiFi.status());
+        return false;
+    }
+    Serial.printf("[CalSync] Wi-Fi up, IP %s\n", WiFi.localIP().toString().c_str());
+
+    // --- NTP time sync (fixed UTC+8, no DST — Malaysia) ---
+    configTime(CAL_TZ_OFFSET_SEC, 0, "pool.ntp.org", "time.nist.gov");
+    time_t nowT = 0;
+    for (int i = 0; i < SYNC_NTP_TRIES; i++) {
+        nowT = time(nullptr);
+        if ((int64_t)nowT > SYNC_NTP_MIN_EPOCH) break;
+        delay(500);
+    }
+    if ((int64_t)nowT <= SYNC_NTP_MIN_EPOCH) {
+        if (msg) snprintf(msg, msgLen, "NTP time sync failed");
+        Serial.println("[CalSync] NTP gave no valid time");
+        return false;
+    }
+    nowUtc = (int64_t)nowT;   // time() is already TRUE UTC (no offset subtraction)
+    return true;
+}
+#endif // WIFI_STA_SSID && WIFI_STA_PASS
+
+// ===========================================================================
 //  Session body (runs on the dedicated sync task — NOT the loop stack)
 // ===========================================================================
 CalendarSyncResult CalendarSync::runInternal() {
@@ -84,38 +130,13 @@ CalendarSyncResult CalendarSync::runInternal() {
         return r;
     }
 
-    // --- 1. STA-only Wi-Fi ---------------------------------------------------
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(WIFI_STA_SSID, WIFI_STA_PASS);
-    Serial.println("[CalSync] joining Wi-Fi (STA)...");
-    int tries = 0;
-    while (WiFi.status() != WL_CONNECTED && tries++ < SYNC_WIFI_TRIES) delay(500);
-    if (WiFi.status() != WL_CONNECTED) {
-        snprintf(r.message, sizeof(r.message), "Wi-Fi connect failed");
-        Serial.printf("[CalSync] Wi-Fi connect failed (status %d)\n", WiFi.status());
-        return r;   // guard powers the radio down
-    }
-    Serial.printf("[CalSync] Wi-Fi up, IP %s\n", WiFi.localIP().toString().c_str());
-
-    // --- 2. NTP time sync ----------------------------------------------------
-    // NTP approach: configTime() with the FIXED UTC+8 offset and no DST
-    // (Malaysia). After this call time(nullptr) returns LOCAL wall-clock
-    // seconds (UTC + CAL_TZ_OFFSET_SEC), so the true UTC instant is recovered
-    // by subtracting the offset. No timezone database is involved — this
-    // matches the Round-1 parser's fixed-offset model exactly.
-    configTime(CAL_TZ_OFFSET_SEC, 0, "pool.ntp.org", "time.nist.gov");
-    time_t nowT = 0;
-    for (int i = 0; i < SYNC_NTP_TRIES; i++) {
-        nowT = time(nullptr);
-        if ((int64_t)nowT > SYNC_NTP_MIN_EPOCH) break;
-        delay(500);
-    }
-    if ((int64_t)nowT <= SYNC_NTP_MIN_EPOCH) {
-        snprintf(r.message, sizeof(r.message), "NTP time sync failed");
-        Serial.println("[CalSync] NTP gave no valid time");
-        return r;
-    }
-    int64_t nowUtc = (int64_t)nowT - CAL_TZ_OFFSET_SEC;   // local -> UTC
+    // --- 1+2. STA-only Wi-Fi + NTP (shared plumbing) -------------------------
+    // staNtp() brings up WIFI_STA, joins the network and runs configTime()/NTP,
+    // returning a valid TRUE-UTC "now" (see header: time() is UTC already, so
+    // there is no offset subtraction). On any failure it fills r.message with a
+    // readable reason and returns false; the WifiOffGuard powers the radio down.
+    int64_t nowUtc = 0;
+    if (!staNtp(nowUtc, r.message, sizeof(r.message))) return r;
     Serial.printf("[CalSync] time synced, nowUtc=%lld\n", (long long)nowUtc);
 
     // --- 3. Fetch + parse each feed ------------------------------------------
@@ -203,37 +224,79 @@ CalendarSyncResult CalendarSync::runInternal() {
 }
 
 // ===========================================================================
-//  Blocking entry point (loop-stack safe: work happens on a 24 KB task)
+//  Time-only session body (STA + NTP, no feed fetch — Round 3)
+// ===========================================================================
+//  Gives the scheduler a valid clock after a power cycle (no battery-backed
+//  RTC) without paying for a full ICS fetch. Mirrors runInternal()'s portal
+//  guard and RAII Wi-Fi-off contract exactly; only the feed loop is omitted.
+CalendarSyncResult CalendarSync::syncTimeOnlyInternal() {
+    CalendarSyncResult r = {};   // zeroed: ok=false, counts 0, message ""
+
+    // Never fight the portal over the radio (same rule as the full sync).
+    if (_ctx.portal && _ctx.portal->isRunning()) {
+        snprintf(r.message, sizeof(r.message), "Wi-Fi portal active - stop it first");
+        Serial.printf("[CalSync] time-only aborted: WebPortal running (userManaged=%d)\n",
+                      _ctx.manager ? (int)_ctx.manager->webUserManaged() : -1);
+        return r;
+    }
+
+#if defined(WIFI_STA_SSID) && defined(WIFI_STA_PASS)
+    struct WifiOffGuard { ~WifiOffGuard() { WiFi.mode(WIFI_OFF); } } wifiGuard;
+
+    int64_t nowUtc = 0;
+    if (!staNtp(nowUtc, r.message, sizeof(r.message))) return r;
+
+    r.ok = true;
+    snprintf(r.message, sizeof(r.message), "Time synced (NTP)");
+    Serial.printf("[CalSync] time-only synced, nowUtc=%lld\n", (long long)nowUtc);
+    return r;   // wifiGuard: WiFi.mode(WIFI_OFF) here
+#else
+    snprintf(r.message, sizeof(r.message), "No Wi-Fi secrets (src/secrets.h)");
+    Serial.println("[CalSync] WIFI_STA_SSID/PASS not defined - time sync disabled");
+    return r;
+#endif
+}
+
+// ===========================================================================
+//  Blocking entry points (loop-stack safe: work happens on a 24 KB task)
 // ===========================================================================
 namespace {
 struct SyncJob {
     CalendarSync       *sync;
     CalendarSyncResult *out;
     SemaphoreHandle_t   done;
+    bool                timeOnly;   // false -> runInternal, true -> syncTimeOnlyInternal
 };
 
 void syncTaskEntry(void *arg) {
     SyncJob *job = static_cast<SyncJob *>(arg);
-    *job->out = job->sync->runInternal();
+    *job->out = job->timeOnly ? job->sync->syncTimeOnlyInternal()
+                              : job->sync->runInternal();
     xSemaphoreGive(job->done);
     vTaskDelete(NULL);   // task frees itself; job is owned by the caller
 }
 } // namespace
 
-CalendarSyncResult CalendarSync::run() {
+// Common trampoline shared by run() and syncTimeOnly(): spawn the session body
+// on the dedicated high-stack task and block the caller until it completes.
+CalendarSyncResult CalendarSync::runOnTask(bool timeOnly) {
     CalendarSyncResult r = {};
 
     SyncJob job;
-    job.sync = this;
-    job.out  = &r;
-    job.done = xSemaphoreCreateBinary();
+    job.sync     = this;
+    job.out      = &r;
+    job.timeOnly = timeOnly;
+    job.done     = xSemaphoreCreateBinary();
     if (!job.done) {
         snprintf(r.message, sizeof(r.message), "Sync task alloc failed");
         return r;
     }
 
     // NOTE: on ESP-IDF, xTaskCreate's stack size is in BYTES (unlike vanilla
-    // FreeRTOS words). 24 KB covers parseIcsFeed's 8 KB buffer + mbedTLS.
+    // FreeRTOS words). 24 KB covers parseIcsFeed's 8 KB buffer + mbedTLS for the
+    // full sync; the time-only path reuses the same task for identical
+    // stack-safety and Wi-Fi-lifecycle behaviour (a little over-provisioned,
+    // but only for the few seconds the pass runs).
     BaseType_t started = xTaskCreate(syncTaskEntry, "calSync",
                                      SYNC_TASK_STACK_BYTES, &job, 1, nullptr);
     if (started != pdPASS) {
@@ -248,3 +311,6 @@ CalendarSyncResult CalendarSync::run() {
     vSemaphoreDelete(job.done);
     return r;
 }
+
+CalendarSyncResult CalendarSync::run()          { return runOnTask(false); }
+CalendarSyncResult CalendarSync::syncTimeOnly() { return runOnTask(true);  }
