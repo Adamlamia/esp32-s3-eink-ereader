@@ -251,6 +251,37 @@ void test_ics_title_truncated_to_capacity(void) {
 // ===========================================================================
 //  IcsParser — malformed-input resilience
 // ===========================================================================
+void test_ics_value_date_time_stays_timed(void) {
+    // REGRESSION (R4): an explicit VALUE=DATE-TIME parameter must NOT be
+    // treated as VALUE=DATE (all-day). The old substring match on
+    // "VALUE=DATE" also matched "VALUE=DATE-TIME" and shifted the event's
+    // start to local midnight with allDay=true.
+    const char *ics =
+        "BEGIN:VEVENT\r\n"
+        "DTSTART;VALUE=DATE-TIME:20260803T010000Z\r\n"
+        "DTEND;VALUE=DATE-TIME:20260803T020000Z\r\n"
+        "SUMMARY:Explicit timed\r\n"
+        "END:VEVENT\r\n";
+    CalendarEvent out[2];
+    int n = parseIcsFeed(ics, 0, out, 2, TZ);
+    TEST_ASSERT_EQUAL_INT(1, n);
+    TEST_ASSERT_FALSE(out[0].allDay);                          // timed, not all-day
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 3600, out[0].startUtc);   // 01:00Z kept
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 7200, out[0].endUtc);
+
+    // VALUE=DATE followed by another parameter (';' terminator) is all-day.
+    const char *ics2 =
+        "BEGIN:VEVENT\r\n"
+        "DTSTART;VALUE=DATE;X-FOO=BAR:20260804\r\n"
+        "SUMMARY:All day with extra param\r\n"
+        "END:VEVENT\r\n";
+    CalendarEvent out2[2];
+    int n2 = parseIcsFeed(ics2, 0, out2, 2, TZ);
+    TEST_ASSERT_EQUAL_INT(1, n2);
+    TEST_ASSERT_TRUE(out2[0].allDay);
+    TEST_ASSERT_EQUAL_INT64(dayStartUtc(2026, 8, 4, TZ), out2[0].startUtc);
+}
+
 void test_ics_null_and_garbage(void) {
     CalendarEvent out[4];
     TEST_ASSERT_EQUAL_INT(0, parseIcsFeed(nullptr, 0, out, 4, TZ));
@@ -505,6 +536,7 @@ int main(int argc, char **argv) {
     RUN_TEST(test_ics_unterminated_vevent);
     RUN_TEST(test_ics_over_capacity_is_capped_not_crashed);
     RUN_TEST(test_ics_zero_capacity_guard);
+    RUN_TEST(test_ics_value_date_time_stays_timed);
 
     // IcsParser — recurrence
     RUN_TEST(test_rrule_daily_across_window);

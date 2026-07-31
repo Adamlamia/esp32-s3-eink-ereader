@@ -127,7 +127,17 @@ inline bool icsParseDateTime(const char *p, int64_t &y, unsigned &m, unsigned &d
 inline bool icsValueToEpoch(const char *params, const char *value, int32_t tzOffsetSec,
                             int64_t &outUtc, bool &allDay) {
     allDay = false;
-    if (params && strstr(params, "VALUE=DATE")) allDay = true;  // VALUE=DATE-TIME stays timed
+    // VALUE=DATE marks an all-day event; VALUE=DATE-TIME (the default, rarely
+    // written out explicitly) is timed. Match the WHOLE parameter value: the
+    // token after "VALUE=DATE" must be ';' or end-of-params, so the substring
+    // test can never mistake "VALUE=DATE-TIME" for "VALUE=DATE" (R4 fix: the
+    // old plain strstr also matched DATE-TIME and mis-flagged explicit timed
+    // events as all-day, shifting their start to local midnight).
+    const char *vd = params ? strstr(params, "VALUE=DATE") : nullptr;
+    if (vd) {
+        const char after = vd[strlen("VALUE=DATE")];
+        if (after == '\0' || after == ';') allDay = true;
+    }
 
     int64_t y; unsigned m, d, hh, mm, ss; bool isUtc = false;
     if (!icsParseDateTime(value, y, m, d, hh, mm, ss, isUtc)) return false;
