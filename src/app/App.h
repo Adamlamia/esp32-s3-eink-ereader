@@ -39,4 +39,14 @@ public:
     // --- Optional hooks ---
     virtual void onLoop(uint32_t nowMs) {}          // periodic tick (network poll, etc.)
     virtual bool wantsSleep() { return true; }      // allow light-sleep when idle?
+
+    // Seconds until this app needs to be woken from light sleep, or -1 for
+    // button-only wakeup (the DEFAULT — preserves existing behaviour for every
+    // app that does not override it). Apps with scheduled background work (e.g.
+    // CalendarApp's daily 06:00 sync) override this so AppManager arms a timer
+    // wakeup IN ADDITION to the button. AppManager takes the minimum non-negative
+    // value across registered apps. Return -1 when there is nothing to wake for
+    // (e.g. no valid clock yet). Implementations must be cheap and side-effect
+    // free: this is queried on the idle->sleep path.
+    virtual int32_t sleepWakeupSec() { return -1; }
 };

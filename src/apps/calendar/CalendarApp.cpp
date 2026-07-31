@@ -186,6 +186,25 @@ void CalendarApp::maybeAutoSync() {
                                                    // portal-guarded, always restores WIFI_OFF
 }
 
+// --- Round 3: light-sleep timer wakeup -------------------------------------
+int32_t CalendarApp::sleepWakeupSec() {
+    // Ask AppManager to wake us for the next scheduled sync so the daily 06:00
+    // fetch happens even from light sleep. Without a valid clock we cannot
+    // compute a wall-clock target, so return -1 (button-only) and let the
+    // boot-NTP path fix the clock the next time we are opened/woken.
+    int64_t now = clockNowUtc();
+    if (now <= 0) return -1;
+
+    int64_t sec = core::secondsUntilNextSync(now, CAL_SYNC_HOUR, CAL_TZ_OFFSET_SEC);
+    // Cap the requested sleep (CAL_WAKE_CAP_SEC, 6 h): instead of sleeping
+    // straight through to 06:00, the device wakes periodically, re-evaluates
+    // the schedule + battery, and re-sleeps if not yet due. This bounds how long
+    // the device is unreachable, lets the stale backstop fire if the exact
+    // window is missed, and keeps the "wake for 06:00 then re-sleep" contract.
+    if (sec > CAL_WAKE_CAP_SEC) sec = CAL_WAKE_CAP_SEC;
+    return (int32_t)sec;   // secondsUntilNextSync() is always > 0 -> valid wakeup
+}
+
 // --- Input -----------------------------------------------------------------
 void CalendarApp::onButton(ButtonEvent ev) {
     if (_screen == Screen::Menu) {

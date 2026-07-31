@@ -54,6 +54,7 @@ public:
     // --- Optional hooks ---
     void onLoop(uint32_t nowMs) override;     // scheduled sync tick + boot NTP (R3)
     bool wantsSleep() override { return !_syncing; }   // stay awake mid-sync
+    int32_t sleepWakeupSec() override;        // timer wakeup until next 06:00 sync (R3)
 
 private:
     // --- View / screen state machines ---
