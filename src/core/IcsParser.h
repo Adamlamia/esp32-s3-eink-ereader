@@ -369,6 +369,9 @@ inline int expandDaily(const CalendarEvent &e, int64_t winStart, int64_t winEnd,
 // Emit the concrete occurrences of a WEEKLY rule (BYDAY mask) within
 // [winStart, winEnd). Weeks are Monday-start and anchored at DTSTART's week;
 // COUNT counts matching day occurrences from the anchor week forward.
+// Occurrences keep DTSTART's LOCAL time-of-day (RFC 5545): a 09:00 meeting
+// recurs at 09:00, not at local midnight (R4 fix). Days in the anchor week
+// earlier than DTSTART are not occurrences and are skipped without counting.
 inline int expandWeekly(const CalendarEvent &e, int64_t winStart, int64_t winEnd,
                         int32_t tzOffsetSec, CalendarEvent *out, int maxOut) {
     int written = 0;
@@ -380,21 +383,27 @@ inline int expandWeekly(const CalendarEvent &e, int64_t winStart, int64_t winEnd
     int64_t maxCount = (e.count > 0) ? e.count : (int64_t)ICS_EXPAND_MAX_ITER;
 
     int64_t anchorWeekMonday = weekStartUtc(e.startUtc, tzOffsetSec);
+    // DTSTART's wall-clock offset within its own local day ([0, 86400)); added
+    // to each BYDAY day's local midnight so occurrences keep DTSTART's time.
+    // Fixed-offset TZ model: the offset is the same every week (no DST).
+    int64_t dayTime = e.startUtc - todayStartUtc(e.startUtc, tzOffsetSec);
     int64_t emitted = 0;     // occurrences counted toward COUNT
     int64_t week = 0;        // week index from the anchor week
     int guard = 0;
 
     while (guard++ < ICS_EXPAND_MAX_ITER && emitted < maxCount) {
         int64_t weekMonday = anchorWeekMonday + week * (int64_t)interval * 7 * 86400;
-        bool anyInWindow = false;
         for (int wd = 0; wd < 7 && emitted < maxCount; ++wd) {
             if (!(mask & calDayBit(wd))) continue;
-            int64_t occ = weekMonday + (int64_t)wd * 86400;
+            int64_t occ = weekMonday + (int64_t)wd * 86400 + dayTime;
+            if (occ < e.startUtc) continue;   // before DTSTART: not an occurrence
+                                              // (RFC 5545) and NOT counted toward
+                                              // COUNT — the anchor week may contain
+                                              // BYDAY days earlier than DTSTART
             if (e.untilUtc != INT64_MIN && occ > e.untilUtc) return written;  // past UNTIL
             if (occ >= winEnd) return written;                                // past window
             ++emitted;                                                        // counts toward COUNT
             if (occ + dur > winStart) {
-                anyInWindow = true;
                 if (written < maxOut) {
                     CalendarEvent o = e;
                     o.startUtc = occ;
@@ -407,7 +416,6 @@ inline int expandWeekly(const CalendarEvent &e, int64_t winStart, int64_t winEnd
                 }
             }
         }
-        (void)anyInWindow;
         ++week;
     }
     return written;

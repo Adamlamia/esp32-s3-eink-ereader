@@ -404,12 +404,13 @@ void test_rrule_weekly_byday_mo_we(void) {
 
     CalendarEvent occ[16];
     int c = expandAndCollect(parsed, 1, MON_AUG3_UTC, MON_AUG3_UTC + 10 * 86400, occ, 16, 0);
-    // Mon Aug 3, Wed Aug 5, Mon Aug 10, Wed Aug 12
+    // Mon Aug 3, Wed Aug 5, Mon Aug 10, Wed Aug 12 — each at DTSTART's 02:00Z
+    // (R4: occurrences keep DTSTART's time-of-day, not local midnight).
     TEST_ASSERT_EQUAL_INT(4, c);
-    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 0 * 86400, occ[0].startUtc);
-    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 2 * 86400, occ[1].startUtc);
-    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 7 * 86400, occ[2].startUtc);
-    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 9 * 86400, occ[3].startUtc);
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 0 * 86400 + 7200, occ[0].startUtc);
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 2 * 86400 + 7200, occ[1].startUtc);
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 7 * 86400 + 7200, occ[2].startUtc);
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 9 * 86400 + 7200, occ[3].startUtc);
 }
 
 void test_rrule_weekly_count(void) {
@@ -425,7 +426,7 @@ void test_rrule_weekly_count(void) {
     CalendarEvent occ[16];
     int c = expandAndCollect(parsed, 1, MON_AUG3_UTC, MON_AUG3_UTC + 60 * 86400, occ, 16, 0);
     TEST_ASSERT_EQUAL_INT(3, c);               // Mon3, Wed5, Mon10
-    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 7 * 86400, occ[2].startUtc);
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 7 * 86400 + 7200, occ[2].startUtc);  // 02:00Z
 }
 
 void test_rrule_weekly_interval(void) {
@@ -441,9 +442,65 @@ void test_rrule_weekly_interval(void) {
     parseIcsFeed(ics, 0, parsed, 2, 0);
     CalendarEvent occ[16];
     int c = expandAndCollect(parsed, 1, MON_AUG3_UTC, MON_AUG3_UTC + 21 * 86400, occ, 16, 0);
-    // Week0: Aug 3, 5 ; Week2: Aug 17, 19 (week1 skipped)
+    // Week0: Aug 3, 5 ; Week2: Aug 17, 19 (week1 skipped) — all at 02:00Z
     TEST_ASSERT_EQUAL_INT(4, c);
-    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 14 * 86400, occ[2].startUtc);
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 14 * 86400 + 7200, occ[2].startUtc);
+}
+
+void test_rrule_weekly_keeps_dtstart_time_of_day(void) {
+    // REGRESSION (R4): a weekly 09:00 LOCAL event must recur at 09:00 local,
+    // not at local midnight (the old anchor). DTSTART 09:00 local (01:00Z)
+    // Mon Aug 3, BYDAY=MO, TZ = UTC+8.
+    const char *ics =
+        "BEGIN:VEVENT\r\n"
+        "DTSTART;TZID=Asia/Kuala_Lumpur:20260803T090000\r\n"
+        "DTEND;TZID=Asia/Kuala_Lumpur:20260803T100000\r\n"
+        "RRULE:FREQ=WEEKLY;BYDAY=MO\r\n"
+        "SUMMARY:Weekly review\r\n"
+        "END:VEVENT\r\n";
+    CalendarEvent parsed[2];
+    int n = parseIcsFeed(ics, 0, parsed, 2, TZ);
+    TEST_ASSERT_EQUAL_INT(1, n);
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 3600, parsed[0].startUtc);  // 01:00Z
+
+    CalendarEvent occ[8];
+    int c = expandAndCollect(parsed, n, MON_AUG3_LOCAL_MIDNIGHT,
+                             MON_AUG3_LOCAL_MIDNIGHT + 21 * 86400, occ, 8, TZ);
+    TEST_ASSERT_EQUAL_INT(3, c);                 // Aug 3, 10, 17
+    for (int i = 0; i < c; ++i) {
+        // Every occurrence at local 09:00 = its day's local midnight + 9 h.
+        int64_t day0 = core::todayStartUtc(occ[i].startUtc, TZ);
+        TEST_ASSERT_EQUAL_INT64(9 * 3600, occ[i].startUtc - day0);
+        TEST_ASSERT_EQUAL_INT64(3600, occ[i].endUtc - occ[i].startUtc);  // 1 h kept
+    }
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 3600, occ[0].startUtc);      // == DTSTART
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 7 * 86400 + 3600, occ[1].startUtc);
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 14 * 86400 + 3600, occ[2].startUtc);
+}
+
+void test_rrule_weekly_no_phantom_before_dtstart(void) {
+    // REGRESSION (R4): BYDAY days in the anchor week that fall BEFORE DTSTART
+    // are not occurrences (RFC 5545) and must not be emitted nor counted
+    // toward COUNT. DTSTART = Wed Aug 5 00:00Z with BYDAY=MO,WE;COUNT=3:
+    // Mon Aug 3 is a phantom; the real series is Wed5, Mon10, Wed12. Before
+    // the fix the phantom displaced a real occurrence (Wed5, Mon10 only +
+    // the phantom).
+    const char *ics =
+        "BEGIN:VEVENT\r\n"
+        "DTSTART:20260805T000000Z\r\n"
+        "DTEND:20260805T010000Z\r\n"
+        "RRULE:FREQ=WEEKLY;BYDAY=MO,WE;COUNT=3\r\n"
+        "SUMMARY:Wed start\r\n"
+        "END:VEVENT\r\n";
+    CalendarEvent parsed[2];
+    int n = parseIcsFeed(ics, 0, parsed, 2, 0);
+    TEST_ASSERT_EQUAL_INT(1, n);
+    CalendarEvent occ[8];
+    int c = expandAndCollect(parsed, n, MON_AUG3_UTC, MON_AUG3_UTC + 30 * 86400, occ, 8, 0);
+    TEST_ASSERT_EQUAL_INT(3, c);
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 2 * 86400, occ[0].startUtc);   // Wed Aug 5
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 7 * 86400, occ[1].startUtc);   // Mon Aug 10
+    TEST_ASSERT_EQUAL_INT64(MON_AUG3_UTC + 9 * 86400, occ[2].startUtc);   // Wed Aug 12
 }
 
 void test_rrule_monthly_unsupported_skipped(void) {
@@ -545,6 +602,8 @@ int main(int argc, char **argv) {
     RUN_TEST(test_rrule_weekly_byday_mo_we);
     RUN_TEST(test_rrule_weekly_count);
     RUN_TEST(test_rrule_weekly_interval);
+    RUN_TEST(test_rrule_weekly_keeps_dtstart_time_of_day);
+    RUN_TEST(test_rrule_weekly_no_phantom_before_dtstart);
     RUN_TEST(test_rrule_monthly_unsupported_skipped);
     RUN_TEST(test_expand_passthrough_and_sort);
     RUN_TEST(test_expand_all_day_recurring_daily);
