@@ -112,6 +112,28 @@
 #define CAL_SYNC_WINDOW_DAYS 14          // rolling window of days to materialise events for
 #define CAL_MAX_CALENDARS    4           // max ICS feeds (Google calendars) tracked
 
+// Round 2: the synced cache (lastSyncUtc + materialised events) is persisted
+// as JSON at CAL_CACHE_FILE on the active filesystem (SD or LittleFS) by
+// src/apps/calendar/CalendarStore.
+#define CAL_CACHE_FILE       "/calendar.json"
+
+// ICS feeds + Wi-Fi credentials are SECRETS and live in src/secrets.h
+// (git-ignored, #included above via __has_include). Create that file with,
+// for n = 0..CAL_MAX_CALENDARS-1 (every line optional and individually
+// guarded; the secret ICS URL itself — with its embedded API key — is the
+// credential, so it must never be committed):
+//
+//   #define WIFI_STA_SSID     "your-router-ssid"
+//   #define WIFI_STA_PASS     "your-router-password"
+//   #define CAL_ICS_URL_0     "https://calendar.google.com/calendar/ical/xxx/basic.ics"
+//   #define CAL_ICS_LABEL_0   "Work"
+//   #define CAL_ICS_URL_1     "https://calendar.google.com/calendar/ical/yyy/basic.ics"
+//   #define CAL_ICS_LABEL_1   "Family"
+//   // ... CAL_ICS_URL_2 / CAL_ICS_LABEL_2, CAL_ICS_URL_3 / CAL_ICS_LABEL_3
+//
+// Without secrets.h the firmware still builds: the calendar shows its empty
+// cache and "Sync now" reports "No Wi-Fi secrets (src/secrets.h)" on screen.
+
 // --- Power management -----------------------------------------------------
 #define IDLE_SLEEP_SECONDS  120  // enter light sleep after inactivity
 #define WEB_ACTIVE_MINUTES  10   // keep Wi-Fi/web alive this long after boot

@@ -16,6 +16,7 @@
 
 // --- App includes (one per registered app) ---------------------------------
 #include "../apps/reader/ReaderApp.h"
+#include "../apps/calendar/CalendarApp.h"   // feature/calendar (R2)
 // #include "../apps/weather/WeatherApp.h"      // future: feature/weather
 // #include "../apps/todo/TodoApp.h"            // future: feature/todo
 // #include "../apps/kanban/KanbanApp.h"        // future: feature/kanban
@@ -24,6 +25,7 @@
 // --- Registration ----------------------------------------------------------
 inline void registerAllApps(AppManager &mgr, SystemContext &ctx) {
     mgr.addApp(new ReaderApp(ctx));
+    mgr.addApp(new CalendarApp(ctx));           // feature/calendar (R2)
     // mgr.addApp(new WeatherApp(ctx));         // future: feature/weather
     // mgr.addApp(new TodoApp(ctx));            // future: feature/todo
     // mgr.addApp(new KanbanApp(ctx));          // future: feature/kanban
