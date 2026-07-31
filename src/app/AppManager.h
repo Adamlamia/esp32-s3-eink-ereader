@@ -32,6 +32,10 @@ public:
     // --- App → Manager communication ---
     void requestHome(); // active app asks to return to the launcher
     void setWebUserManaged(bool managed) { _webUserManaged = managed; }
+    // True once the user has toggled Wi-Fi by hand (disables auto-shutoff).
+    // Apps that want to use the radio themselves (e.g. CalendarSync) check
+    // this + WebPortal::isRunning() so they never fight over WiFi.mode().
+    bool webUserManaged() const { return _webUserManaged; }
 
     // --- Accessors ---
     int  appCount() const { return _appCount; }
