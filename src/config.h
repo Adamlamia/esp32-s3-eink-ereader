@@ -96,6 +96,10 @@
 #define DEFAULT_FONT_SIZE 1     // FiraSans drives UI text; book body uses ReaderFont
 #define FULL_REFRESH_EVERY 8    // full-clear every N pages to kill ghosting
 
+// --- App framework --------------------------------------------------------
+#define APP_LAUNCHER_TITLE  "Home"   // title shown on the launcher / home screen
+#define APP_MAX_COUNT       8        // max registered apps (static array in AppManager)
+
 // --- Power management -----------------------------------------------------
 #define IDLE_SLEEP_SECONDS  120  // enter light sleep after inactivity
 #define WEB_ACTIVE_MINUTES  10   // keep Wi-Fi/web alive this long after boot
