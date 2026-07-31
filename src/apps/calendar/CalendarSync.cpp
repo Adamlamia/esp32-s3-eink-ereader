@@ -28,7 +28,7 @@
 // --- Session tuning ---------------------------------------------------------
 static const int     SYNC_WIFI_TRIES   = 30;    // x 500 ms  -> <= 15 s Wi-Fi join
 static const int     SYNC_NTP_TRIES    = 30;    // x 500 ms  -> <= 15 s NTP wait
-static const int64_t SYNC_NTP_MIN_EPOCH = INT64_C(1700000000);  // 2023-11: "clock is sane"
+static const int64_t SYNC_NTP_MIN_EPOCH = CAL_CLOCK_MIN_EPOCH;  // shared "clock is sane" floor (config.h)
 static const size_t  SYNC_BODY_MAX     = 32768; // reject absurdly large ICS bodies
 static const int     SYNC_HTTP_TIMEOUT_MS = 10000;
 static const int     SYNC_HTTP_CONNECT_MS = 8000;

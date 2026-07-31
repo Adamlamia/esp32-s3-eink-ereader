@@ -121,7 +121,7 @@ int64_t CalendarApp::clockNowUtc() const {
     // reads garbage near epoch 0, reported here as 0 == "not valid yet" so the
     // caller defers to the boot-NTP path instead of syncing blindly.
     int64_t t = (int64_t)time(nullptr);
-    return (t >= INT64_C(1700000000)) ? t : 0;
+    return (t >= CAL_CLOCK_MIN_EPOCH) ? t : 0;
 }
 
 // --- Round 3: boot NTP (one-shot) ------------------------------------------
@@ -246,8 +246,8 @@ int64_t CalendarApp::uiNowUtc() const {
     // cache was materialised at exactly that "now", so Today/Week stay
     // coherent. Never synced and no clock -> 0 -> views render empty with
     // the "Long-hold -> Sync now" hint.
-    if (t < INT64_C(1700000000)) t = _lastSyncUtc;
-    if (t < INT64_C(1700000000)) t = 0;
+    if (t < CAL_CLOCK_MIN_EPOCH) t = _lastSyncUtc;
+    if (t < CAL_CLOCK_MIN_EPOCH) t = 0;
     return t;
 }
 

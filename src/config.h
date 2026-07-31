@@ -132,6 +132,13 @@
 #define CAL_SYNC_STALE_SEC       (20 * 3600)   // resync backstop: 20 h since last sync
 #define CAL_WAKE_CAP_SEC         (6 * 3600)    // max scheduled wakeup interval: 6 h
 
+// Wall-clock validity floor (UTC epoch seconds, 2023-11-14): any time(nullptr)
+// reading below this is "clock not fixed yet" (the ESP32-S3 has no battery-
+// backed RTC, so it reads garbage near 0 after a power cycle until NTP runs).
+// Shared by CalendarSync's NTP wait and CalendarApp's clock sources so every
+// site agrees on what "valid" means.
+#define CAL_CLOCK_MIN_EPOCH      1700000000LL
+
 // ICS feeds + Wi-Fi credentials are SECRETS and live in src/secrets.h
 // (git-ignored, #included above via __has_include). Create that file with,
 // for n = 0..CAL_MAX_CALENDARS-1 (every line optional and individually
