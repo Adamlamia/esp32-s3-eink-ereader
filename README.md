@@ -39,6 +39,10 @@ Wi-Fi and upload.
 - **QR Toolkit** — show Wi-Fi, DuitNow payment and URL/text QR codes full-
   screen on the e-ink; tap cycles entries, long-hold opens the menu. Payloads
   live in `src/secrets.h` only; the Wi-Fi password is never shown on screen.
+- **Todo (Tasks calendar)** — a checklist synced from a dedicated "Tasks"
+  Google Calendar via the same secret-ICS-URL mechanism (zero new auth).
+  Tap moves, medium-hold toggles done, long-hold opens the menu. Done-state
+  is device-local only (`/todo.json`); tasks are edited on your phone.
 
 ---
 
@@ -182,6 +186,45 @@ is optional:
 
 With neither Wi-Fi creds nor any `QR_PAYLOAD_n`, the app shows a helpful
 empty-state screen — the firmware still builds and runs.
+
+## ✅ Todo (Tasks calendar)
+
+The launcher's **Todo** app renders a dedicated **"Tasks" Google Calendar**
+as an e-ink checklist: every **all-day event** is one task (its title is the
+task text); timed events are ignored. You add / edit / delete tasks in the
+Google Calendar app on your phone and the device picks them up on the next
+sync — it reuses the calendar's existing ICS mechanism (**zero new auth**):
+STA-only Wi-Fi, portal-guarded, NTP-time-fixed, HTTPS GET, and the radio is
+always powered off afterwards. The last sync is cached at `/todo.json` on
+the active filesystem; the app re-fetches automatically when you open it
+with a cache older than 6 h (battery- and portal-guarded), and a long-hold
+opens the menu (**Sync now** · **Back to Home**).
+
+| Gesture (main screen) | Action |
+|---|---|
+| Tap | Move the highlight (wraps; the list auto-pages to follow) |
+| Medium hold | Toggle "done" on the highlighted task — saved immediately |
+| Long hold | Open the menu |
+
+**Done-state is device-local only:** toggles are stored in `/todo.json` and
+are **never** pushed back to Google. Completed tasks are matched by the ICS
+`UID`, so they stay ticked even if you rename the task on your phone; stale
+done-keys are pruned on the next sync when a task disappears.
+
+Point it at your own Tasks calendar with its **secret ICS address**
+(Google Calendar → Settings → the calendar → "Secret address in iCal
+format"), added to `src/secrets.h` (git-ignored — never commit it):
+
+```c
+#define TODO_ICS_URL    "https://calendar.google.com/calendar/ical/.../basic.ics"
+#define TODO_ICS_LABEL  "Tasks"   // shown on screen (defaults to "Tasks")
+```
+
+Both lines are optional — without `TODO_ICS_URL` the firmware is fully
+functional and the app shows "No Tasks calendar (set TODO_ICS_URL)". Wi-Fi
+still requires `WIFI_STA_SSID` / `WIFI_STA_PASS` in `src/secrets.h`.
+
+---
 
 ## 🗂 Project layout
 
