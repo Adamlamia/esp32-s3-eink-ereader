@@ -100,6 +100,63 @@
 #define APP_LAUNCHER_TITLE  "Home"   // title shown on the launcher / home screen
 #define APP_MAX_COUNT       8        // max registered apps (static array in AppManager)
 
+// --- Calendar app ---------------------------------------------------------
+// Pure-logic calendar core (Round 1). Sizing constants for the header-only
+// seams in src/core/Calendar*.h; later rounds (SD cache, Wi-Fi/NTP/HTTP sync,
+// e-ink UI) build on these. No heap is used anywhere in the seams, so every
+// capacity below bounds a fixed static buffer.
+#define CAL_TZ_OFFSET_SEC    (8 * 3600)  // fixed UTC offset: Malaysia (MYT, UTC+8, no DST)
+#define CAL_MAX_EVENTS       64          // max concrete events held in memory / per sync
+#define CAL_TITLE_MAX        64          // event title buffer (chars, incl. NUL terminator)
+#define CAL_SYNC_HOUR        6           // hour-of-day (local) the daily sync is due
+#define CAL_SYNC_WINDOW_DAYS 14          // rolling window of days to materialise events for
+#define CAL_MAX_CALENDARS    4           // max ICS feeds (Google calendars) tracked
+
+// Round 2: the synced cache (lastSyncUtc + materialised events) is persisted
+// as JSON at CAL_CACHE_FILE on the active filesystem (SD or LittleFS) by
+// src/apps/calendar/CalendarStore.
+#define CAL_CACHE_FILE       "/calendar.json"
+
+// Round 3: scheduled-sync + power management (see core/SyncSchedule.h and
+// CalendarApp::onLoop). All three tune the automatic daily sync:
+//   CAL_MIN_BATTERY_FOR_SYNC  skip AUTO/boot syncs below this battery % so a
+//                             near-empty device never lights up the radio for a
+//                             non-essential fetch (manual "Sync now" still works).
+//   CAL_SYNC_STALE_SEC        backstop: force a resync once the cache is at
+//                             least this old, even if the daily hour was missed.
+//   CAL_WAKE_CAP_SEC          max light-sleep timer the Calendar app requests
+//                             (AppManager caps sleepWakeupSec() at this) so the
+//                             device wakes periodically to re-check the schedule
+//                             and battery instead of sleeping straight to 06:00.
+#define CAL_MIN_BATTERY_FOR_SYNC 15            // % battery floor for auto/boot syncs
+#define CAL_SYNC_STALE_SEC       (20 * 3600)   // resync backstop: 20 h since last sync
+#define CAL_WAKE_CAP_SEC         (6 * 3600)    // max scheduled wakeup interval: 6 h
+
+// Wall-clock validity floor (UTC epoch seconds, 2023-11-14): any time(nullptr)
+// reading below this is "clock not fixed yet" (the ESP32-S3 has no battery-
+// backed RTC, so it reads garbage near 0 after a power cycle until NTP runs).
+// Shared by CalendarSync's NTP wait and CalendarApp's clock sources so every
+// site agrees on what "valid" means.
+#define CAL_CLOCK_MIN_EPOCH      1700000000LL
+
+// ICS feeds + Wi-Fi credentials are SECRETS and live in src/secrets.h
+// (git-ignored, #included above via __has_include). Create that file with,
+// for n = 0..CAL_MAX_CALENDARS-1 (every line optional and individually
+// guarded; the secret ICS URL itself — with its embedded API key — is the
+// credential, so it must never be committed):
+//
+//   #define WIFI_STA_SSID     "your-router-ssid"
+//   #define WIFI_STA_PASS     "your-router-password"
+//   #define CAL_ICS_URL_0     "https://calendar.google.com/calendar/ical/xxx/basic.ics"
+//   #define CAL_ICS_LABEL_0   "Work"
+//   #define CAL_ICS_URL_1     "https://calendar.google.com/calendar/ical/yyy/basic.ics"
+//   #define CAL_ICS_LABEL_1   "Family"
+//   // ... CAL_ICS_URL_2 / CAL_ICS_LABEL_2, CAL_ICS_URL_3 / CAL_ICS_LABEL_3
+//
+// Without secrets.h the firmware still builds: the calendar shows its empty
+// cache and "Sync now" reports "No Wi-Fi secrets (src/secrets.h)" on screen.
+
 // --- Power management -----------------------------------------------------
 #define IDLE_SLEEP_SECONDS  120  // enter light sleep after inactivity
-#define WEB_ACTIVE_MINUTES  10   // keep Wi-Fi/web alive this long after boot
+#define WEB_AUTO_START    0    // 0 = portal OFF at boot (calendar sync works); 1 = auto-start AP
+#define WEB_ACTIVE_MINUTES  10   // keep Wi-Fi/web alive this long after boot (if auto-started)

@@ -7,6 +7,7 @@
 // ===========================================================================
 #include "app/AppManager.h"
 #include "core/ButtonClassify.h"
+#include <esp_sleep.h>   // ext0 + timer wakeup sources for light sleep
 
 // --- Construction ----------------------------------------------------------
 AppManager::AppManager(SystemContext &ctx)
@@ -182,7 +183,31 @@ void AppManager::systemTasks(uint32_t now) {
                          (_activeApp && _activeApp->wantsSleep());
         if (portalOff && canSleep) {
             Serial.println("[AppManager] idle -> light sleep");
+            // Button wakeup is always armed (the original, default behaviour).
             esp_sleep_enable_ext0_wakeup((gpio_num_t)BTN_BOOT, 0);
+
+            // Optional timer wakeup: the soonest registered app that has
+            // scheduled work (sleepWakeupSec() >= 0) gets a timer source IN
+            // ADDITION to the button. Every app defaults to -1, so without an
+            // opt-in (e.g. CalendarApp) this loop yields -1 and behaviour is
+            // exactly the button-only sleep the framework always had. We take
+            // the MIN over apps so background schedules fire even from the
+            // launcher (the user need not keep the app open for it to sync).
+            int32_t wakeSec = -1;
+            for (int i = 0; i < _appCount; i++) {
+                int32_t s = _apps[i]->sleepWakeupSec();
+                if (s >= 0 && (wakeSec < 0 || s < wakeSec)) wakeSec = s;
+            }
+            if (wakeSec >= 0) {
+                esp_sleep_enable_timer_wakeup((uint64_t)wakeSec * 1000000ULL);
+                Serial.printf("[AppManager] timer wakeup armed in %ld s\n", (long)wakeSec);
+            } else {
+                // No app needs a timer: clear any previously-armed timer source so
+                // this sleep is strictly button-only (the timer config lives in the
+                // RTC domain and would otherwise survive into later sleeps).
+                esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
+            }
+
             esp_light_sleep_start();
             _lastActivityMs = millis();   // reset on wake
         }
