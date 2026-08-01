@@ -125,9 +125,9 @@ inline bool emvcoAddField(EmvcoPayload &p, const char *tag, const char *value) {
 // --- Build -----------------------------------------------------------------------
 // Serialize the fields as "TTLLVV..." and append the CRC trailer "6304XXXX"
 // (XXXX = uppercase hex emvcoCrc16 over everything including the "6304").
-// Returns false (out = "") when: out/cap is null, the buffer is too small, or
-// any field is invalid (bad tag, value > 99 chars). Fails loudly, never
-// produces a partial payload.
+// Returns false (out = "") when: out/cap is null, the buffer is too small,
+// any field is invalid (bad tag, value > 99 chars), or the payload already
+// carries a tag-63 field. Fails loudly, never produces a partial payload.
 inline bool emvcoBuild(const EmvcoPayload &p, char *out, size_t cap) {
     if (!out || cap == 0) return false;
     out[0] = '\0';
@@ -137,6 +137,11 @@ inline bool emvcoBuild(const EmvcoPayload &p, char *out, size_t cap) {
     for (int i = 0; i < p.count; ++i) {
         const EmvcoField &f = p.fields[i];
         if (!emvcoIsTwoDigits(f.tag)) { out[0] = '\0'; return false; }
+        // The tag-63 CRC trailer is AUTO-GENERATED just below. A caller-
+        // supplied 63 would emit a duplicate trailer that emvcoParse rejects
+        // outright, breaking the lossless round-trip guarantee - so refuse to
+        // build it rather than produce an unparseable payload (QR-R2).
+        if (f.tag[0] == '6' && f.tag[1] == '3') { out[0] = '\0'; return false; }
         const size_t vlen = std::strlen(f.value);
         if (vlen > 99) { out[0] = '\0'; return false; }   // unrepresentable length
         // "TTLL" + value

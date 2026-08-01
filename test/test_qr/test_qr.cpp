@@ -449,6 +449,66 @@ void test_list_kind_captions(void) {
 }
 
 // ===========================================================================
+//  QR-R2 REGRESSION tests - each FAILS without its fix, PASSES with it
+// ===========================================================================
+// R2-1: emvcoBuild must REFUSE a caller-supplied tag-63 field. The CRC trailer
+// is auto-generated; a duplicate 63 yields a payload emvcoParse rejects,
+// breaking the lossless round-trip. (Fails without the QR-R2 guard: build
+// would "succeed" but emit an unparseable duplicate-trailer string.)
+void test_build_rejects_caller_supplied_crc_tag(void) {
+    EmvcoPayload p;
+    emvcoPayloadClear(p);
+    TEST_ASSERT_TRUE(emvcoAddField(p, "00", "01"));
+    TEST_ASSERT_TRUE(emvcoAddField(p, "63", "ABCD"));   // caller must NOT add 63
+
+    char out[QR_EMVCO_PAYLOAD_MAX];
+    out[0] = 'z';
+    TEST_ASSERT_FALSE(emvcoBuild(p, out, sizeof(out)));  // refuse loudly
+    TEST_ASSERT_EQUAL_STRING("", out);                   // cleared, no partial
+
+    // Sanity: the SAME payload minus the rogue 63 builds + round-trips fine,
+    // so the refusal is specifically about the duplicate CRC trailer.
+    EmvcoPayload q;
+    emvcoPayloadClear(q);
+    TEST_ASSERT_TRUE(emvcoAddField(q, "00", "01"));
+    TEST_ASSERT_TRUE(emvcoBuild(q, out, sizeof(out)));
+    TEST_ASSERT_TRUE(emvcoIsValid(out));
+}
+
+// R2-2: a WiFi payload is NEVER silently truncated when added to the carousel.
+// wifiQrBuild caps its output at QR_WIFI_QR_MAX-1 and qrListAddWifi relies on
+// QR_WIFI_QR_MAX <= QR_PAYLOAD_MAX (compile-time pinned in QrPayload.h) so the
+// entry buffer always holds the FULL string. This test drives the assembled
+// payload to exactly QR_WIFI_QR_MAX-1 (191) chars - the largest wifiQrBuild can
+// emit - and asserts the stored entry is byte-complete (len == 191, ";;"
+// terminator intact, escaped password present). It would FAIL if a future
+// change let qrListAdd truncate a WiFi credential (len < 191 / cut tail) - the
+// silent-mangle hazard the QR-R2 review checked for. See QR-REVIEW-QR-R2.md M1.
+void test_list_add_wifi_payload_never_truncated(void) {
+    QrEntryList l;
+    qrListClear(l);
+
+    // Assembled = "WIFI:T:WPA;S:"(13) + escSsid + ";P:"(3) + escPass + ";;"(2).
+    // SSID = 80 ';' -> 160 escaped; pass = 6 ';' + 'x' -> 13 escaped.
+    // 13 + 160 + 3 + 13 + 2 = 191 == QR_WIFI_QR_MAX-1: the max emittable size.
+    char ssid[81], pass[8];
+    std::memset(ssid, ';', 80); ssid[80] = '\0';
+    std::memset(pass, ';', 6);  pass[6] = 'x'; pass[7] = '\0';
+
+    TEST_ASSERT_TRUE(qrListAddWifi(l, ssid, pass, "Wi-Fi"));
+    TEST_ASSERT_EQUAL_INT(1, l.count);
+
+    const char *stored = l.items[0].payload;
+    const size_t len = std::strlen(stored);
+    // Stored in FULL: exact assembled length, proper terminator, escaped
+    // password present - i.e. nothing was cut by qrListAdd.
+    TEST_ASSERT_EQUAL_INT(191, (int)len);
+    TEST_ASSERT_EQUAL_INT(0, std::memcmp(stored, "WIFI:T:WPA;S:", 13));
+    TEST_ASSERT_EQUAL_INT(0, std::memcmp(stored + len - 2, ";;", 2));
+    TEST_ASSERT_NOT_NULL(std::strstr(stored, ";P:"));
+}
+
+// ===========================================================================
 int main(int, char **) {
     UNITY_BEGIN();
     // CRC
@@ -490,5 +550,8 @@ int main(int, char **) {
     RUN_TEST(test_list_truncation_is_safe);
     RUN_TEST(test_list_add_wifi_entry);
     RUN_TEST(test_list_kind_captions);
+    // QR-R2 regressions
+    RUN_TEST(test_build_rejects_caller_supplied_crc_tag);
+    RUN_TEST(test_list_add_wifi_payload_never_truncated);
     return UNITY_END();
 }
