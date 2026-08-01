@@ -36,6 +36,9 @@ Wi-Fi and upload.
   ghosting, and light-sleep power management for long battery life.
 - **OTA-ready partitions** — dual app slots so you can add over-the-air firmware
   updates later.
+- **QR Toolkit** — show Wi-Fi, DuitNow payment and URL/text QR codes full-
+  screen on the e-ink; tap cycles entries, long-hold opens the menu. Payloads
+  live in `src/secrets.h` only; the Wi-Fi password is never shown on screen.
 
 ---
 
@@ -147,6 +150,38 @@ without those the app shows its empty state and refresh reports
 "No Wi-Fi secrets (src/secrets.h)".
 
 ---
+
+## 🔳 QR Toolkit
+
+The launcher's **QR Toolkit** app renders a carousel of QR codes full-screen
+on the e-ink: **tap** cycles entries (wraps), **long-hold** opens the menu
+(*Back to Home*). Each entry is drawn centred with its label and a
+payload-type caption:
+
+- **Wi-Fi QR** — generated automatically from `WIFI_STA_SSID` /
+  `WIFI_STA_PASS` (zxing `WIFI:` format; the specials `\ ; , : "` are
+  escaped in SSID and password; open networks use `T:nopass`). The password
+  is **never drawn on screen** — it lives only in `src/secrets.h` -> RAM ->
+  QR bitmap.
+- **DuitNow / EMVCo payment QR** — paste a raw EMVCo QRPS payload; the app
+  validates its structure and CRC16-CCITT trailer (tag 63) and captions it
+  as a payment QR.
+- **URL / free-text QR** — anything else (http(s) payloads are captioned
+  URL, everything else Text).
+
+Add entries in `src/secrets.h` (git-ignored — never commit it); every line
+is optional:
+
+```c
+#define QR_PAYLOAD_0   "https://example.com/menu"
+#define QR_LABEL_0     "Cafe menu"
+#define QR_PAYLOAD_1   "00020101021126...6304ABCD"   // raw EMVCo/DuitNow QRPS
+#define QR_LABEL_1     "DuitNow"
+// ... up to QR_PAYLOAD_7 / QR_LABEL_7
+```
+
+With neither Wi-Fi creds nor any `QR_PAYLOAD_n`, the app shows a helpful
+empty-state screen — the firmware still builds and runs.
 
 ## 🗂 Project layout
 

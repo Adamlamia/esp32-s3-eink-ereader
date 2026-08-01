@@ -194,6 +194,38 @@
                                             // CAL_TZ_OFFSET_SEC, which the UI reuses
                                             // for its weekday/date math
 
+// --- QR app ---------------------------------------------------------------
+// QR Toolkit (QR-R1). Sizing constants for the header-only seams in
+// src/core/Emvco.h + src/core/QrPayload.h (no heap; every capacity bounds a
+// fixed static buffer). The QR ENCODING lib (ricmoo/QRCode) is a firmware-
+// only dependency in platformio.ini; the seams + native tests stay HAL-free.
+//
+// QR entries are SECRETS-adjacent config and live in src/secrets.h
+// (git-ignored, #included above via __has_include). For n = 0..QR_MAX_ENTRIES-
+// 1, every line is optional and individually #ifdef-guarded by QrApp, so the
+// firmware builds with ZERO QR secrets (the app then shows its empty state):
+//
+//   #define QR_PAYLOAD_0   "https://example.com/menu"   // URL / free text /
+//   #define QR_LABEL_0     "Cafe menu"                  //   raw EMVCo QRPS...
+//   #define QR_PAYLOAD_1   "00020101021126590014MY.GOV.BNM.RPP...6304ABCD"
+//   #define QR_LABEL_1     "DuitNow"
+//   // ... QR_PAYLOAD_2 / QR_LABEL_2 up to QR_PAYLOAD_7 / QR_LABEL_7
+//
+// A WiFi QR is ALSO generated automatically from WIFI_STA_SSID/WIFI_STA_PASS
+// when those exist, ahead of any QR_PAYLOAD_n entries.
+#define QR_MAX_ENTRIES      8        // max QR carousel entries (WiFi + secrets)
+#define QR_LABEL_MAX        32       // entry label buffer (chars, incl. NUL)
+#define QR_PAYLOAD_MAX      320      // entry payload buffer (chars, incl. NUL);
+                                     // fits a QR v13 byte-mode code (425 cap)
+#define QR_WIFI_QR_MAX      192      // WiFi QR string buffer (escaped worst case)
+#define QR_EMVCO_MAX_FIELDS 16       // max top-level EMVCo TLV fields decoded
+#define QR_EMVCO_VALUE_MAX  100      // EMVCo field value buffer: 99 chars + NUL
+                                     // (the 2-digit length ceiling)
+#define QR_EMVCO_PAYLOAD_MAX 384     // recommended EMVCo build-output buffer
+#define QR_MIN_VERSION      3        // smallest QR version QrApp will emit
+#define QR_MAX_VERSION      13       // largest: 69 modules, 425 byte-mode chars
+                                     // (ECC LOW) and a 596-byte module buffer
+
 // --- Power management -----------------------------------------------------
 #define IDLE_SLEEP_SECONDS  120  // enter light sleep after inactivity
 #define WEB_AUTO_START    0    // 0 = portal OFF at boot (calendar sync works); 1 = auto-start AP

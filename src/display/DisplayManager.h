@@ -24,6 +24,10 @@ public:
     // Bold outline box used to make the selected menu / library row obvious.
     void drawSelectionBox(int x, int y, int w, int h, int thickness = 3);
 
+    // Filled rectangle in solid ink (0 = black). Used by QrApp to render
+    // QR modules straight into the framebuffer (clipped by the driver).
+    void fillRect(int x, int y, int w, int h);
+
     // Compact reading font (Georgia) used for book body + status bar.
     // Two generated sizes: normal (~14pt) and small (~10pt), user-selectable.
     void drawBookText(int x, int y, const String &text);

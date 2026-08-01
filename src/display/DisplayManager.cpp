@@ -103,6 +103,11 @@ void DisplayManager::drawSelectionBox(int x, int y, int w, int h, int thickness)
         epd_draw_rect(x - i, y - i, w + 2 * i, h + 2 * i, INK, _framebuffer);
 }
 
+void DisplayManager::fillRect(int x, int y, int w, int h) {
+    // Solid-ink filled rectangle; the driver clips to the panel bounds.
+    epd_fill_rect(x, y, w, h, INK, _framebuffer);
+}
+
 void DisplayManager::showMessage(const String &title, const String &body) {
     clearBuffer();
     drawTextCentered(DISPLAY_HEIGHT / 2 - 40, title, 2);
