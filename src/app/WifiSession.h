@@ -4,7 +4,7 @@
 // ===========================================================================
 //  The single place the radio lifecycle lives, extracted in the WTH-R2 review
 //  from the near-verbatim parallels in CalendarSync and WeatherSync (the two
-//  TODO(WTH-R2) markers that asked for exactly this). Both sync sessions reuse:
+//  WTH-R2 review markers that asked for exactly this). Both sync sessions reuse:
 //
 //    (portal guard)            - documented rule; each caller checks inline so
 //                                its serial diagnostics stay verbatim

@@ -113,6 +113,8 @@ CalendarSyncResult CalendarSync::runInternal() {
         // SECURITY NOTE: setInsecure() skips certificate validation; the
         // secret ICS URL itself (with its embedded private API key) is the
         // credential, so it lives only in git-ignored src/secrets.h.
+        // Proper CA validation is deferred to a shared hardening round that
+        // fixes BOTH apps together: TODO(TLS).
         client.setInsecure();
         HTTPClient http;
         http.setConnectTimeout(SYNC_HTTP_CONNECT_MS);

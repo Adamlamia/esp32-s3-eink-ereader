@@ -86,7 +86,8 @@ WeatherSyncResult WeatherSync::runInternal() {
         // SECURITY NOTE: setInsecure() skips certificate validation, matching
         // CalendarSync. Open-Meteo needs no credential (free, no API key); the
         // payload is public forecast data, so the risk is a tampered forecast,
-        // not a leaked secret. (Proper CA validation: TODO(WTH-R2).)
+        // not a leaked secret. Proper CA validation is deferred to a shared
+        // hardening round that fixes BOTH apps together: TODO(TLS).
         client.setInsecure();
         HTTPClient http;
         http.setConnectTimeout(SYNC_HTTP_CONNECT_MS);

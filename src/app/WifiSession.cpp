@@ -3,7 +3,7 @@
 // ===========================================================================
 //  Implementation of the shared radio-lifecycle facility declared in
 //  WifiSession.h, extracted verbatim from the near-verbatim parallels that
-//  CalendarSync.cpp and WeatherSync.cpp each carried (the two TODO(WTH-R2)
+//  CalendarSync.cpp and WeatherSync.cpp each carried (the two WTH-R2 review
 //  markers). The trampoline (wifiSessionRunOnTask) is a header-only template;
 //  only the Wi-Fi-off guard and the STA+NTP plumbing live here.
 //
