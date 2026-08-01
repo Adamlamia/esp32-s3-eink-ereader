@@ -69,7 +69,9 @@ void setup() {
     static BookmarkManager bootBookmarks(g_storage.fs());
     bootBookmarks.begin();
     g_portal = new WebPortal(g_storage, bootBookmarks);
+#if WEB_AUTO_START
     g_portal->begin();
+#endif
     g_display.setWifiState(g_portal->isRunning());
 
     // --- System context (shared services bundle) ---

@@ -158,4 +158,5 @@
 
 // --- Power management -----------------------------------------------------
 #define IDLE_SLEEP_SECONDS  120  // enter light sleep after inactivity
-#define WEB_ACTIVE_MINUTES  10   // keep Wi-Fi/web alive this long after boot
+#define WEB_AUTO_START    0    // 0 = portal OFF at boot (calendar sync works); 1 = auto-start AP
+#define WEB_ACTIVE_MINUTES  10   // keep Wi-Fi/web alive this long after boot (if auto-started)
