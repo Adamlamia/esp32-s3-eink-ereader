@@ -155,6 +155,44 @@
 //
 // Without secrets.h the firmware still builds: the calendar shows its empty
 // cache and "Sync now" reports "No Wi-Fi secrets (src/secrets.h)" on screen.
+//
+// Weather location (Open-Meteo, no API key). All three lines are OPTIONAL:
+// Kuala Lumpur defaults are compiled in via the #ifndef guards below, so the
+// Weather app is fully functional with NO weather secrets at all.
+//
+//   #define WEATHER_LAT    3.1390f        // degrees, +N/-S
+//   #define WEATHER_LON    101.6869f      // degrees, +E/-W
+//   #define WEATHER_LABEL  "Kuala Lumpur" // <= 23 chars, shown on screen
+#ifndef WEATHER_LAT
+  #define WEATHER_LAT    3.1390f          // default: Kuala Lumpur
+#endif
+#ifndef WEATHER_LON
+  #define WEATHER_LON    101.6869f
+#endif
+#ifndef WEATHER_LABEL
+  #define WEATHER_LABEL  "Kuala Lumpur"
+#endif
+
+// --- Weather app ------------------------------------------------------------
+// Open-Meteo weather app (WTH·R1). Sizing constants for the header-only seam
+// in src/core/OpenMeteo.h (no heap; every capacity bounds a fixed buffer),
+// the /weather.json cache (src/apps/weather/WeatherStore) and the sync session
+// (src/apps/weather/WeatherSync, which reuses the calendar's Wi-Fi/NTP/HTTPS
+// + RAII-WiFi-off + portal-guard lifecycle).
+#define WEATHER_CACHE_FILE      "/weather.json"   // cache path on the active FS
+#define WEATHER_LABEL_MAX       24          // location label buffer (chars, incl. NUL)
+#define WEATHER_FORECAST_DAYS   3           // daily forecast rows fetched + cached
+#define WEATHER_URL_MAX         320         // request-URL buffer: the full Open-Meteo
+                                            // URL with all current+daily fields is
+                                            // ~270 chars, so 192 would never fit
+#define WEATHER_BODY_MAX        8192        // reject bodies above this (real payload < 1 KB)
+#define WEATHER_STALE_SEC       (3 * 3600)  // on-open resync threshold: 3 h since fetch
+#define WEATHER_MIN_BATTERY_FOR_SYNC 15     // % floor for AUTO (on-open) resync only;
+                                            // manual refresh is always allowed
+#define WEATHER_TZ              "Asia/Kuala_Lumpur"  // Open-Meteo timezone: UTC+8, no
+                                            // DST — the same fixed offset as
+                                            // CAL_TZ_OFFSET_SEC, which the UI reuses
+                                            // for its weekday/date math
 
 // --- Power management -----------------------------------------------------
 #define IDLE_SLEEP_SECONDS  120  // enter light sleep after inactivity
