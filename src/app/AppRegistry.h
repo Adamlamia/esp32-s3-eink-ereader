@@ -18,6 +18,7 @@
 #include "../apps/reader/ReaderApp.h"
 #include "../apps/calendar/CalendarApp.h"   // feature/calendar (R2)
 #include "../apps/weather/WeatherApp.h"     // feature/weather (WTH·R1)
+#include "../apps/qr/QrApp.h"             // feature/qr (QR-R1)
 // #include "../apps/todo/TodoApp.h"            // future: feature/todo
 // #include "../apps/kanban/KanbanApp.h"        // future: feature/kanban
 // #include "../apps/habits/HabitsApp.h"        // future: feature/habits
@@ -27,6 +28,7 @@ inline void registerAllApps(AppManager &mgr, SystemContext &ctx) {
     mgr.addApp(new ReaderApp(ctx));
     mgr.addApp(new CalendarApp(ctx));           // feature/calendar (R2)
     mgr.addApp(new WeatherApp(ctx));            // feature/weather (WTH·R1)
+    mgr.addApp(new QrApp(ctx));               // feature/qr (QR-R1)
     // mgr.addApp(new TodoApp(ctx));            // future: feature/todo
     // mgr.addApp(new KanbanApp(ctx));          // future: feature/kanban
     // mgr.addApp(new HabitsApp(ctx));          // future: feature/habits
