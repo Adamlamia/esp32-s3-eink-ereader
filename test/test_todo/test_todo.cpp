@@ -540,6 +540,28 @@ void test_cache_bounds_to_max(void) {
     TEST_ASSERT_EQUAL_INT(3, n);                                 // caller capacity
 }
 
+void test_cache_skips_phantom_task_elements(void) {
+    // NEGATIVE (TODO·R2 regression): a corrupt / hand-edited / adversarial
+    // cache may carry non-object or field-less tasks[] entries. These must
+    // NOT materialise as phantom "(untitled)" tasks — deserializeTodoCache
+    // skips any element that yields neither a title nor a UID, mirroring how
+    // CalendarStore drops events without a mandatory start and how the done
+    // loop skips empty / non-string keys. Fails without the guard (n == 6).
+    const char *doc =
+        "{\"v\":1,\"sync\":99,\"tasks\":["
+        "1,null,\"x\",{},{\"d\":5},"          // junk -> all phantom
+        "{\"t\":\"Real task\",\"u\":\"u1\",\"d\":123}]}";
+    TodoTask out[TODO_MAX_TASKS];
+    TodoDoneSet done;
+    int64_t sync = 0;
+    int n = deserializeTodoCache(doc, out, TODO_MAX_TASKS, &done, sync);
+    TEST_ASSERT_EQUAL_INT(1, n);                 // only the real task survives
+    TEST_ASSERT_EQUAL_STRING("Real task", out[0].title);
+    TEST_ASSERT_EQUAL_STRING("u1", out[0].uid);
+    TEST_ASSERT_EQUAL_INT64(123, out[0].dayUtc);
+    TEST_ASSERT_EQUAL_INT64(99, sync);           // sync kept despite junk tasks
+}
+
 // ===========================================================================
 //  End-to-end pipeline pins (the identity design decision in action)
 // ===========================================================================
@@ -655,6 +677,7 @@ int main(int, char **) {
     RUN_TEST(test_cache_missing_arrays_keep_sync);
     RUN_TEST(test_cache_null_args_and_done_only_load);
     RUN_TEST(test_cache_bounds_to_max);
+    RUN_TEST(test_cache_skips_phantom_task_elements);
     // End-to-end pipeline pins
     RUN_TEST(test_pipeline_resync_keeps_done_across_rename);
     RUN_TEST(test_pipeline_deleted_task_pruned);
