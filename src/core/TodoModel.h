@@ -312,6 +312,17 @@ inline int deserializeTodoCache(const std::string &in, TodoTask *tasks, int max,
             t.title[TODO_TITLE_MAX - 1] = '\0';
             t.dayUtc = o["d"] | (int64_t)0;
             t.done   = false;                    // merge fills it from the done-set
+            // Reject PHANTOM elements (TODO·R2): a corrupt / hand-edited /
+            // adversarial cache may carry non-object or field-less tasks[]
+            // entries (e.g. [1,null,{}]), which decode to an empty title AND
+            // empty uid. Such an entry has no usable identity (todoMakeKey
+            // would degrade to a bare "d<day>#") and would surface on screen
+            // as a phantom "(untitled)" row, so skip it -- exactly mirroring
+            // CalendarStore's deserializer (which drops events lacking the
+            // mandatory start) and the done-loop below (which skips empty /
+            // non-string keys). A real task always carries a title (SUMMARY)
+            // or a UID (Google emits both).
+            if (t.title[0] == '\0' && t.uid[0] == '\0') continue;
             if (tasks) tasks[n] = t;
             ++n;
         }
