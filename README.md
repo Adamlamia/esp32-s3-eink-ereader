@@ -121,6 +121,33 @@ by **how long you hold**:
 
 ---
 
+## 🌤 Weather (Open-Meteo)
+
+The launcher's **Weather** app shows current conditions (temperature, weather
+glyph, feels-like, humidity, wind) plus a **3-day forecast** for your
+location, fetched from [Open-Meteo](https://open-meteo.com/) — **free, no API
+key**. The last snapshot is cached at `/weather.json` on the active
+filesystem; the app re-fetches automatically when you open it with a cache
+older than 3 h (battery- and portal-guarded), and a **tap** refreshes on
+demand (long-hold opens the menu: *Refresh now* · *Back to Home*). It reuses
+the calendar's Wi-Fi/NTP/HTTPS lifecycle: STA-only, portal-guarded, and the
+radio is always powered off afterwards. Without any configuration it targets
+**Kuala Lumpur**; to point it at your location, add to `src/secrets.h`
+(git-ignored — never commit it):
+
+```c
+#define WEATHER_LAT    3.1390f          // degrees, +N/-S
+#define WEATHER_LON    101.6869f        // degrees, +E/-W
+#define WEATHER_LABEL  "Kuala Lumpur"   // shown on screen (<= 23 chars)
+```
+
+All three lines are optional — the firmware is fully functional without them.
+Wi-Fi still requires `WIFI_STA_SSID` / `WIFI_STA_PASS` in `src/secrets.h`;
+without those the app shows its empty state and refresh reports
+"No Wi-Fi secrets (src/secrets.h)".
+
+---
+
 ## 🗂 Project layout
 
 ```
