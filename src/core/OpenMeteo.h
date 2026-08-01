@@ -303,7 +303,16 @@ inline bool deserializeWeatherCache(const std::string &in, WeatherSnapshot &out)
         out.cur.valid       = c["ok"] | false;
         out.cur.tempC       = c["t"]  | 0.0f;
         out.cur.feelsC      = c["f"]  | 0.0f;
-        out.cur.windKph     = c["w"]  | 0.0f;
+        // WTH·R2 hardening: sanitise the cached numbers exactly like the live
+        // parser does, so a corrupt / hand-edited / future-schema cache can
+        // never surface an out-of-physical-range value on screen. The trusted
+        // write path (sync -> parser) already clamps these; this is defence in
+        // depth on the read path. Non-finite floats are rejected just below.
+        float w = c["w"] | 0.0f;
+        if (!std::isfinite(w))  w = 0.0f;
+        if (w < 0.0f)           w = 0.0f;
+        if (w > 500.0f)         w = 500.0f;          // match parseOpenMeteo clamp
+        out.cur.windKph     = w;
         long h = c["h"] | 0L;
         if (h < 0)   h = 0;
         if (h > 100) h = 100;
@@ -322,12 +331,16 @@ inline bool deserializeWeatherCache(const std::string &in, WeatherSnapshot &out)
         if (n >= WEATHER_FORECAST_DAYS) break;      // bound to capacity
         WeatherDay &d = out.days[n];
         d.valid = o["ok"] | false;
+        // WTH·R2 hardening: clamp cached tenths-of-°C to the int16_t range and
+        // normalise an inverted min/max pair, mirroring parseOpenMeteo, so a
+        // corrupt cache never renders "300.0 .. -300.0" style nonsense.
         long mn = o["n"] | 0L;
         long mx = o["x"] | 0L;
         if (mn < -32760) mn = -32760;
         if (mn >  32760) mn =  32760;
         if (mx < -32760) mx = -32760;
         if (mx >  32760) mx =  32760;
+        if (mn > mx) { long tmp = mn; mn = mx; mx = tmp; }   // never inverted
         d.tMin = (int16_t)mn;
         d.tMax = (int16_t)mx;
         long dc = o["c"] | -1L;

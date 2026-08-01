@@ -348,6 +348,76 @@ void test_cache_label_truncated(void) {
 }
 
 // ===========================================================================
+//  WTH·R2 regression tests: cache-read sanitisation (defence in depth)
+// ===========================================================================
+//  The live parser (parseOpenMeteo) clamps wind/humidity/code and rejects
+//  non-finite floats; the cache READER must enforce the same envelope so a
+//  corrupt / hand-edited / future-schema /weather.json can never surface an
+//  out-of-physical-range value on screen. Each test below FAILS without the
+//  R2 hardening of deserializeWeatherCache and passes with it.
+void test_cache_cur_wind_clamped(void) {
+    WeatherSnapshot out;
+    // Out-of-range cached wind is clamped to the parser's 0..500 km/h envelope.
+    TEST_ASSERT_TRUE(deserializeWeatherCache(
+        "{\"v\":1,\"cur\":{\"ok\":true,\"t\":25.0,\"w\":9999.0}}", out));
+    TEST_ASSERT_TRUE(out.cur.valid);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 500.0f, out.cur.windKph);   // >500 clamps down
+
+    TEST_ASSERT_TRUE(deserializeWeatherCache(
+        "{\"v\":1,\"cur\":{\"ok\":true,\"t\":25.0,\"w\":-7.0}}", out));
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 0.0f, out.cur.windKph);     // <0 clamps up
+}
+
+void test_cache_cur_wind_large_clamped(void) {
+    // A large out-of-range cached wind reading is clamped into the physical
+    // 0..500 km/h envelope (never an absurd on-screen value). This is the R2
+    // read-path hardening: the live parser clamps wind, and now the cache
+    // reader enforces the same envelope so a corrupt / hand-edited cache cannot
+    // surface e.g. "Wind 98765.0 km/h". (A JSON number that overflows double is
+    // deliberately NOT used here: its double->float narrowing is host-defined,
+    // so it would make the test non-portable.)
+    WeatherSnapshot out;
+    TEST_ASSERT_TRUE(deserializeWeatherCache(
+        "{\"v\":1,\"cur\":{\"ok\":true,\"t\":25.0,\"w\":98765.0}}", out));
+    TEST_ASSERT_TRUE(out.cur.valid);                             // 25.0 temp is fine
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 500.0f, out.cur.windKph);    // >500 -> 500
+}
+
+void test_cache_day_temps_sanitised(void) {
+    // Out-of-int16 cached tenths clamp to range; an inverted min/max pair is
+    // normalised (mirrors parseOpenMeteo) so the forecast row never shows
+    // "300.0 .. -300.0" style nonsense from a corrupt cache.
+    WeatherSnapshot out;
+    TEST_ASSERT_TRUE(deserializeWeatherCache(
+        "{\"v\":1,\"days\":[{\"ok\":true,\"n\":99999,\"x\":-99999}]}", out));
+    TEST_ASSERT_EQUAL_INT(1, out.dayCount);
+    TEST_ASSERT_EQUAL_INT16(-32760, out.days[0].tMin);           // clamped + swapped
+    TEST_ASSERT_EQUAL_INT16( 32760, out.days[0].tMax);
+}
+
+void test_cache_day_code_out_of_range(void) {
+    // A cached WMO code outside -1..99 normalises to -1 (unknown glyph).
+    WeatherSnapshot out;
+    TEST_ASSERT_TRUE(deserializeWeatherCache(
+        "{\"v\":1,\"days\":[{\"ok\":true,\"n\":240,\"x\":300,\"c\":777}]}", out));
+    TEST_ASSERT_EQUAL_INT(-1, out.days[0].weatherCode);
+}
+
+void test_cache_dataless_doc_is_empty_state(void) {
+    // Empty-state / first-fetch contract at the seam: a structurally valid but
+    // data-less cache (the shape a never-completed sync could leave) loads as a
+    // CLEARED snapshot -> WeatherApp renders "No weather yet - Tap to refresh",
+    // never garbage and never a crash.
+    WeatherSnapshot out;
+    out.fetchedUtc = 999;                                        // pre-dirty
+    out.cur.valid  = true;
+    TEST_ASSERT_TRUE(deserializeWeatherCache("{\"v\":1,\"cur\":{},\"days\":[]}", out));
+    TEST_ASSERT_EQUAL_INT64(0, out.fetchedUtc);
+    TEST_ASSERT_FALSE(out.cur.valid);
+    TEST_ASSERT_EQUAL_INT(0, out.dayCount);
+}
+
+// ===========================================================================
 //  buildOpenMeteoUrl
 // ===========================================================================
 void test_url_kl_defaults(void) {
@@ -447,6 +517,11 @@ int main(int, char **) {
     RUN_TEST(test_cache_corrupt_input_yields_empty);
     RUN_TEST(test_cache_missing_fields_tolerated);
     RUN_TEST(test_cache_label_truncated);
+    RUN_TEST(test_cache_cur_wind_clamped);
+    RUN_TEST(test_cache_cur_wind_large_clamped);
+    RUN_TEST(test_cache_day_temps_sanitised);
+    RUN_TEST(test_cache_day_code_out_of_range);
+    RUN_TEST(test_cache_dataless_doc_is_empty_state);
     // URL builder
     RUN_TEST(test_url_kl_defaults);
     RUN_TEST(test_url_small_cap_yields_empty);
