@@ -42,11 +42,11 @@
 //  offset subtraction. The NTP-validity floor is the shared CAL_CLOCK_MIN_EPOCH
 //  from config.h (deliberately NOT duplicated here).
 //
-//  TODO(WTH-R2): staNtp() + the trampoline below are near-verbatim parallels
-//  of CalendarSync's; extract a shared Wi-Fi/NTP/task helper (e.g.
-//  src/app/WifiSession.h) once both apps have settled, so the radio lifecycle
-//  lives in exactly one place. Deferred to avoid destabilising the merged
-//  calendar code in this round.
+//  WTH-R2 (resolved): the staNtp() + trampoline that were near-verbatim
+//  parallels of CalendarSync's now live in src/app/WifiSession.h/.cpp, shared
+//  by both apps. The radio lifecycle (portal guard, RAII Wi-Fi-off, STA+NTP,
+//  24 KB task) lives in exactly one place; this was a behaviour-preserving
+//  extraction (the calendar's live-verified path is unchanged).
 // ===========================================================================
 #include <stdint.h>
 #include <stddef.h>
@@ -71,12 +71,10 @@ public:
     WeatherSyncResult runInternal();
 
 private:
-    // STA-join + NTP plumbing (parallel to CalendarSync::staNtp). Returns true
-    // and sets nowUtc (TRUE UTC seconds) on success; on failure returns false
-    // with a short readable reason in msg. Portal-guarded by the caller. Does
-    // NOT own the radio lifecycle: the caller holds the RAII WifiOffGuard so
-    // Wi-Fi is always powered down on every exit path.
-    bool staNtp(int64_t &nowUtc, char *msg, size_t msgLen);
+    // WTH-R2: the STA-join + NTP plumbing (wifiSessionStaNtp), the RAII
+    // WifiOffGuard and the 24 KB trampoline (wifiSessionRunOnTask) live in
+    // app/WifiSession, shared verbatim with CalendarSync. run() forwards to the
+    // shared trampoline; runInternal() is the weather session body.
 
     SystemContext &_ctx;
 };

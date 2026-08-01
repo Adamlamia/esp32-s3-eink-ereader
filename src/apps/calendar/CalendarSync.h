@@ -35,8 +35,10 @@
 //  battery-backed RTC, so after a power cycle the wall clock is unknown until
 //  some NTP pass runs; CalendarApp calls this on boot so the scheduling math
 //  (core/SyncSchedule.h) has a valid "now" to work with. It reuses exactly the
-//  same STA-join + NTP plumbing (staNtp) and the same 24 KB trampoline task as
-//  the full run(), so Wi-Fi lifecycle and stack-safety behaviour are identical.
+//  same STA-join + NTP plumbing (wifiSessionStaNtp) and the same 24 KB
+//  trampoline task (wifiSessionRunOnTask) as the full run() - both now shared
+//  with WeatherSync via app/WifiSession - so Wi-Fi lifecycle and stack-safety
+//  behaviour are identical.
 //
 //  Clock convention (important): time(nullptr) returns TRUE UTC epoch seconds
 //  once NTP has fixed the clock — configTime()'s gmtOffset argument only steers
@@ -49,6 +51,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "app/SystemContext.h"
+#include "app/WifiSession.h"      // WTH-R2: shared Wi-Fi/NTP/task lifecycle
 #include "core/CalendarEvent.h"
 
 // --- Result of one sync session --------------------------------------------
@@ -77,16 +80,10 @@ public:
     CalendarSyncResult syncTimeOnlyInternal();
 
 private:
-    // Shared STA-join + NTP plumbing for run() and syncTimeOnly(). Returns true
-    // and sets nowUtc (TRUE UTC seconds) on success; on failure returns false
-    // with a short readable reason in msg. Portal-guarded. Does NOT own the
-    // radio lifecycle: the caller holds the RAII WifiOffGuard so Wi-Fi is
-    // always powered down on every exit path.
-    bool staNtp(int64_t &nowUtc, char *msg, size_t msgLen);
-
-    // Common trampoline: run a session body on the dedicated 24 KB task and
-    // block the caller until it completes. timeOnly selects the body.
-    CalendarSyncResult runOnTask(bool timeOnly);
+    // WTH-R2: the STA-join + NTP plumbing (wifiSessionStaNtp), the RAII
+    // WifiOffGuard and the 24 KB trampoline (wifiSessionRunOnTask) now live in
+    // app/WifiSession, shared verbatim with WeatherSync. run() / syncTimeOnly()
+    // select the session body and forward to the shared trampoline.
 
     SystemContext &_ctx;
 };
