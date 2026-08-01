@@ -198,8 +198,18 @@ inline bool qrListAddWifi(QrEntryList &l, const char *ssid, const char *pass,
                           const char *label) {
     char payload[QR_WIFI_QR_MAX];
     if (!wifiQrBuild(ssid, pass, payload, sizeof(payload))) return false;
-    // A WiFi payload always fits QR_PAYLOAD_MAX (192 < 320), so a false here
-    // can only mean "list full" — exactly what the caller needs to know.
+    // A WiFi payload can NEVER be silently truncated by qrListAdd: wifiQrBuild
+    // writes at most QR_WIFI_QR_MAX-1 chars into `payload` (it fails loudly on
+    // a too-small buffer rather than emit a partial string), and the invariant
+    // QR_WIFI_QR_MAX <= QR_PAYLOAD_MAX — pinned at compile time just below —
+    // guarantees that always fits the entry's payload[QR_PAYLOAD_MAX] buffer.
+    // So a false below can only mean "list full", exactly what the caller
+    // needs. (QR-R2: corrected a misleading "192 < 320" comment and pinned the
+    // invariant the old comment only asserted in prose; see finding M1 in
+    // docs/QR-REVIEW-QR-R2.md.)
+    static_assert(QR_WIFI_QR_MAX <= QR_PAYLOAD_MAX,
+                  "qrListAddWifi: a max-length WiFi payload must fit the entry "
+                  "buffer, or qrListAdd would silently truncate the credential");
     return qrListAdd(l, QrKind::Wifi, label, payload);
 }
 
