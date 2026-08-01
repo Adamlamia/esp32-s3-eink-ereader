@@ -12,10 +12,17 @@
 //  by the project constant CAL_TITLE_MAX from config.h. config.h is a pure
 //  macro header (no Arduino/HAL), so the seam stays host-testable; the native
 //  test env exposes it via -Isrc.
+//
+//  UID capture (TODO·R1): the struct also carries the event's ICS UID, bounded
+//  by CAL_UID_MAX. The parser previously ignored UID; the Todo app needs it as
+//  a STABLE identity for device-local done-state (Google keeps the UID fixed
+//  across phone-side edits and re-syncs). Capturing it here is additive: the
+//  calendar app never reads the field, and recurrence expansion copies it into
+//  each concrete occurrence automatically (struct copy).
 // ===========================================================================
 #include <cstdint>
 #include <cstddef>
-#include "config.h"   // CAL_TITLE_MAX (pure macros, no HAL)
+#include "config.h"   // CAL_TITLE_MAX / CAL_UID_MAX (pure macros, no HAL)
 
 namespace core {
 
@@ -33,6 +40,8 @@ struct CalendarEvent {
     int64_t startUtc;                 // inclusive start, UTC epoch seconds
     int64_t endUtc;                   // exclusive end, UTC epoch seconds
     char    title[CAL_TITLE_MAX];     // NUL-terminated, ICS escapes already decoded
+    char    uid[CAL_UID_MAX];         // NUL-terminated ICS UID ("" when the feed
+                                      // omits it); stable identity for Todo done-state
     uint8_t category;                 // index of the source feed (Google calendar)
     bool    allDay;                   // true for VALUE=DATE events (spans local days)
 
@@ -53,6 +62,7 @@ inline void calEventClear(CalendarEvent &e) {
     e.startUtc  = 0;
     e.endUtc    = 0;
     e.title[0]  = '\0';
+    e.uid[0]    = '\0';
     e.category  = 0;
     e.allDay    = false;
     e.freq      = CalFreq::None;
