@@ -22,11 +22,11 @@ const C = {
 
 // ── Status header ────────────────────────────────────────────────────────────
 const meta = {
-  status: "BATCH 1 COMPLETE — FULL PAUSE · main 1efa36b · Agenda split-view live on device · 229 tests · Todo deferred",
+  status: "BATCH 2 IN PROGRESS · Dev Companion DONE & flashed · main 4a737d1 · 257 tests · Voice Journal next",
   updated: "2026-08-02",
-  round: "FULL PAUSE (PROJECT_BRIEF §2.2) — batch 2 (Dev Companion, Voice Journal) awaits user go-signal",
-  nextHumanAction: "Say 'start batch 2' when ready, or revisit Todo backend / on-device validation",
-  branch: "main (1efa36b) · feature/todo + feature/qr kept",
+  round: "Feature 6 (Voice Journal) scoping — backend decision deferred, hardware gate (INMP441)",
+  nextHumanAction: "Decide Voice Journal backend (self-hosted vs cloud) + confirm INMP441 mic availability",
+  branch: "main (4a737d1) · feature/todo + feature/qr kept",
 };
 
 // ── Locked tech stack (so decisions aren't re-litigated) ─────────────────────
@@ -58,6 +58,8 @@ const milestones: { id: string; name: string; progress: number; status: string; 
   { id: "M10", name: "QR Toolkit (batch 2 of 4)", progress: 100, status: "done", rounds: "QR·R1–R2", done: "WiFi/DuitNow/URL QRs, tap cycles, EMVCo seam tested" },
   { id: "M11", name: "Todo (batch 3 of 4) — DEFERRED", progress: 95, status: "blocked", rounds: "TODO·R1–R2", done: "Built+tested+merged, but DISABLED in launcher (TODO(TODO-BACKEND)): Google Tasks has no ICS feed; revisit backend" },
   { id: "M12", name: "Agenda (batch 4 of 4 · FULL PAUSE after)", progress: 100, status: "done", rounds: "AGD·R1–R2", done: "Split-view launcher: left=apps, right=today's timeline (calendar-only, clean Todo slot), next-item highlighted; 0 Critical; flashed to device" },
+  { id: "M13", name: "Dev Companion (batch 2 · Feature 5)", progress: 100, status: "done", rounds: "DEV·R1–R2", done: "Reference viewer (4-bpp blit from SD) + GitHub dashboard (PRs/issues/CI); 2 Critical fixed; 257 tests; flashed" },
+  { id: "M14", name: "Voice Journal (batch 2 · Feature 6)", progress: 0, status: "pending", rounds: "VJ·Rx", done: "I2S WAV recording + nightly batch sync to swappable backend" },
 ];
 
 // ── Prompt chain — ACTIVE track: Batch-1 features (Weather → QR → Todo → Agenda) ─
