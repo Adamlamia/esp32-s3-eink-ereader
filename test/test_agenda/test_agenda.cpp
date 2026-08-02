@@ -298,6 +298,62 @@ void test_agenda_capacity_clamped(void) {
 }
 
 // ===========================================================================
+//  Capacity: all-day fills first; earliest timed items take the remainder
+//  (AGD·R2 regression pin for the COMBINED all-day+timed clamp — the spec's
+//  "alphabetically-first all-day + earliest timed win" rule, reviewed-correct
+//  but previously unpinned when BOTH sections compete for a short buffer).
+// ===========================================================================
+void test_agenda_capacity_allday_fills_first(void) {
+    // Two all-day + five timed, room for four: the all-day section fills first
+    // (2 items, alphabetical), then the two EARLIEST timed items take the rest.
+    CalendarEvent cal[7] = {
+        mkEvent(NOW + 3 * 3600, NOW + 4 * 3600, "T-late", false),
+        mkEvent(DAY0, DAY1, "Zebra", true),
+        mkEvent(NOW + 1 * 3600, NOW + 2 * 3600, "T-soon", false),
+        mkEvent(DAY0, DAY1, "Alpha", true),
+        mkEvent(NOW + 2 * 3600, NOW + 3 * 3600, "T-mid",  false),
+        mkEvent(NOW - 2 * 3600, NOW - 1 * 3600, "T-past", false),
+        mkEvent(NOW + 4 * 3600, NOW + 5 * 3600, "T-last", false),
+    };
+    AgendaItem out[4];
+    int next = -2;
+    int n = agendaMergeToday(cal, 7, nullptr, 0, NOW, DAY0, DAY1, out, 4, &next);
+
+    TEST_ASSERT_EQUAL_INT(4, n);                 // clamped to maxOut
+    // All-day first, alphabetical.
+    TEST_ASSERT_EQUAL_STRING("Alpha", out[0].title);
+    TEST_ASSERT_TRUE(out[0].allDay);
+    TEST_ASSERT_EQUAL_STRING("Zebra", out[1].title);
+    TEST_ASSERT_TRUE(out[1].allDay);
+    // Then the two EARLIEST timed (T-past NOW-2h, T-soon NOW+1h), ascending.
+    TEST_ASSERT_EQUAL_STRING("T-past", out[2].title);
+    TEST_ASSERT_FALSE(out[2].allDay);
+    TEST_ASSERT_EQUAL_STRING("T-soon", out[3].title);
+    TEST_ASSERT_FALSE(out[3].allDay);
+    // "next up" = first displayed timed item strictly after now = T-soon (idx 3).
+    TEST_ASSERT_EQUAL_INT(3, next);
+
+    // When all-day ALONE meets capacity, timed gets nothing: three all-day +
+    // one timed, room for two → the two alphabetically-first all-day items,
+    // no timed slot, nothing is "next".
+    CalendarEvent cal2[4] = {
+        mkEvent(NOW + 3600, NOW + 7200, "Would-be timed", false),
+        mkEvent(DAY0, DAY1, "Mike",  true),
+        mkEvent(DAY0, DAY1, "Alpha", true),
+        mkEvent(DAY0, DAY1, "Zulu",  true),
+    };
+    AgendaItem out2[2];
+    int next2 = 99;
+    int n2 = agendaMergeToday(cal2, 4, nullptr, 0, NOW, DAY0, DAY1, out2, 2, &next2);
+    TEST_ASSERT_EQUAL_INT(2, n2);
+    TEST_ASSERT_EQUAL_STRING("Alpha", out2[0].title);
+    TEST_ASSERT_EQUAL_STRING("Mike",  out2[1].title);
+    TEST_ASSERT_TRUE(out2[0].allDay);
+    TEST_ASSERT_TRUE(out2[1].allDay);
+    TEST_ASSERT_EQUAL_INT(-1, next2);            // no timed item made the cut
+}
+
+// ===========================================================================
 //  Exact day-window boundaries
 // ===========================================================================
 void test_agenda_day_boundaries(void) {
@@ -368,6 +424,7 @@ int main(int, char **) {
     RUN_TEST(test_agenda_nextidx_between_events);
     RUN_TEST(test_agenda_nextidx_all_past);
     RUN_TEST(test_agenda_capacity_clamped);
+    RUN_TEST(test_agenda_capacity_allday_fills_first);
     RUN_TEST(test_agenda_day_boundaries);
     RUN_TEST(test_agenda_nextidx_strictly_future);
     RUN_TEST(test_agenda_title_truncated_safely);
