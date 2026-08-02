@@ -277,6 +277,20 @@
   #define TODO_ICS_LABEL "Tasks"          // default label when secrets.h omits it
 #endif
 
+// --- Agenda (split-view launcher) -------------------------------------------
+// Agenda (AGD·R1, docs/PROJECT_BRIEF.md §2.3 Feature 4). The launcher's right
+// panel shows TODAY's timeline: a thin merge layer (src/core/AgendaMerge.h)
+// over the two existing caches (/calendar.json + /todo.json) — no new network
+// code. Sizing constants for the header-only seam (no heap; every capacity
+// bounds a fixed static buffer):
+#define AGENDA_TITLE_MAX   48          // display title buffer in core::AgendaItem
+                                       // (chars, incl. NUL; longer cache titles are
+                                       // truncated by the merge, never overflowed)
+#define AGENDA_MAX_ITEMS   24          // max timeline items the merge can emit /
+                                       // the launcher holds (bounded RAM; when a
+                                       // busy day has more, the alphabetically-first
+                                       // all-day items + earliest timed items win)
+
 // --- Power management -----------------------------------------------------
 #define IDLE_SLEEP_SECONDS  120  // enter light sleep after inactivity
 #define WEB_AUTO_START    0    // 0 = portal OFF at boot (calendar sync works); 1 = auto-start AP
