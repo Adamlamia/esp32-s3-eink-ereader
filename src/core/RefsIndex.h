@@ -40,6 +40,9 @@
 #ifndef REFS_LABEL_MAX
   #define REFS_LABEL_MAX 40
 #endif
+#ifndef REFS_RAW_SIZE
+  #define REFS_RAW_SIZE 259200
+#endif
 
 namespace core {
 
@@ -57,6 +60,17 @@ inline void refsEntryClear(RefsEntry &e) {
     e.file[0]  = '\0';
     e.label[0] = '\0';
 }
+
+// --- Full-frame .raw size contract ------------------------------------------
+// A blittable reference dump is EXACTLY one panel framebuffer:
+// REFS_RAW_SIZE == EPD_WIDTH*EPD_HEIGHT/2 == 259200 bytes, the exact format
+// tools/make_refs.py writes (480 bytes/row x 540 rows, no padding). Anything
+// else is a corrupt / truncated / wrong-converter file and must NOT be handed
+// to DisplayManager::blitRaw: blitRaw clamps a short buffer and leaves the
+// (never-cleared) framebuffer tail stale, i.e. garbage on the panel instead of
+// the viewer's readable placeholder. The viewer therefore rejects non-exact
+// sizes (DEV·R2 short-file regression). Pure + host-testable.
+inline bool refsRawSizeValid(size_t sz) { return sz == (size_t)REFS_RAW_SIZE; }
 
 // --- Internal helpers (header-local) ----------------------------------------
 namespace refs_detail {

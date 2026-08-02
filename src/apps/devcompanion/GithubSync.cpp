@@ -165,9 +165,12 @@ GithubSyncResult GithubSync::runInternal() {
         bool countsOk = true;   // a repo is "ok" iff BOTH counts fetched
 
         // open PRs: search/issues?q=type:pr+state:open+repo:{repo}
+        // per_page=1 keeps the body tiny: we only read total_count, but GitHub's
+        // default per_page=30 returns up to 30 full issue objects (~tens of KB),
+        // which would exceed GITHUB_BODY_MAX and be rejected -> bogus 0 counts.
         body = "";
         snprintf(url, sizeof(url),
-                 "https://api.github.com/search/issues?q=type:pr+state:open+repo:%s",
+                 "https://api.github.com/search/issues?q=type:pr+state:open+repo:%s&per_page=1",
                  repos[i]);
         if (githubGet(url, pat, body) == HTTP_CODE_OK) {
             int c = core::parseGithubCount(std::string(body.c_str()));
@@ -177,9 +180,10 @@ GithubSyncResult GithubSync::runInternal() {
         }
 
         // open issues: search/issues?q=type:issue+state:open+repo:{repo}
+        // per_page=1 as above (only total_count is consumed).
         body = "";
         snprintf(url, sizeof(url),
-                 "https://api.github.com/search/issues?q=type:issue+state:open+repo:%s",
+                 "https://api.github.com/search/issues?q=type:issue+state:open+repo:%s&per_page=1",
                  repos[i]);
         if (githubGet(url, pat, body) == HTTP_CODE_OK) {
             int c = core::parseGithubCount(std::string(body.c_str()));

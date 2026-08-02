@@ -154,8 +154,10 @@ void DevCompanionApp::renderRefImage() {
 
     // Read the .raw dump (259200 bytes) into a PSRAM buffer, then blit it into
     // the framebuffer. PSRAM (8 MB) easily holds one frame; the buffer is freed
-    // before the flush so nothing lingers. A short / missing file leaves the
-    // framebuffer untouched and shows a readable placeholder instead of garbage.
+    // before the flush so nothing lingers. A missing / corrupt (wrong-size) file
+    // is NOT blitted — the framebuffer is never cleared on this path, so a short
+    // dump would leave a stale/garbage tail on the panel; instead we fall
+    // through to the readable placeholder below (DEV·R2 short-file fix).
     bool drawn = false;
     uint8_t *buf = (uint8_t *)ps_malloc(REFS_RAW_SIZE);
     if (!buf) {
@@ -164,8 +166,12 @@ void DevCompanionApp::renderRefImage() {
         File f = _ctx.storage.fs().open(path, "r");
         if (f) {
             size_t sz = f.size();
-            if (sz > REFS_RAW_SIZE) sz = REFS_RAW_SIZE;   // clamp to one frame
-            if (sz > 0) {
+            // A valid dump is EXACTLY one framebuffer; anything else is corrupt
+            // (truncated SD write / wrong converter) — reject, never partial-blit.
+            if (!core::refsRawSizeValid(sz)) {
+                Serial.printf("[DevCompanion] refs: %s bad size %u (want %u) - corrupt?\n",
+                              path.c_str(), (unsigned)sz, (unsigned)REFS_RAW_SIZE);
+            } else {
                 size_t rd = f.readBytes((char *)buf, sz);
                 if (rd == sz) { d.blitRaw(buf, rd); drawn = true; }
                 else Serial.printf("[DevCompanion] refs: short read %u/%u\n",
