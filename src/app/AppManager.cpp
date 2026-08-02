@@ -147,6 +147,15 @@ void AppManager::refreshAgenda() {
         nullptr, 0,                        // Todo slot — not wired yet (AGD·R1)
         now, d0, d1,
         _agendaItems, AGENDA_MAX_ITEMS, &_agendaNextIdx);
+
+    // Observability (AGD·R2): one line per refresh so an "empty timeline" is
+    // diagnosable from serial alone. CalendarStore::load already logs the raw
+    // event count; this logs what the merge made of it — distinguishing "cache
+    // empty" (events=0), "clock not fixed" (now=0 → window [0,0) excludes
+    // everything) and "busy day merged to N items, next highlight at K".
+    Serial.printf("[Agenda] now=%lld window=[%lld,%lld) events=%d items=%d next=%d\n",
+                  (long long)_agendaNowUtc, (long long)d0, (long long)d1,
+                  _agendaEventCount, _agendaItemCount, _agendaNextIdx);
 }
 
 // --- Internal: agenda panel rendering (right half of the launcher) ---------
