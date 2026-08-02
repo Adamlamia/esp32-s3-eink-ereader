@@ -152,6 +152,11 @@ void DevCompanionApp::renderRefImage() {
     const core::RefsEntry &e = _refs[_refIndex];
     String path = String(REFS_DIR) + "/" + String(e.file);
 
+    // Observability (DEV·R2): say WHICH image is going on the panel, so a blank
+    // / wrong picture is diagnosable from serial alone (was errors-only before).
+    Serial.printf("[DevCompanion] refs: show %d/%d '%s' (%s)\n",
+                  _refIndex + 1, _refCount, e.label, path.c_str());
+
     // Read the .raw dump (259200 bytes) into a PSRAM buffer, then blit it into
     // the framebuffer. PSRAM (8 MB) easily holds one frame; the buffer is freed
     // before the flush so nothing lingers. A missing / corrupt (wrong-size) file
@@ -320,6 +325,12 @@ void DevCompanionApp::switchSection(Section s) {
                           (long long)_ghLastSync);
             runSync();          // splash -> sync -> reload -> renderGithub
         } else {
+            // Observability (DEV·R2): log WHY no auto-sync ran, so an empty/stale
+            // panel is diagnosable from serial (fresh cache, unfixed clock, portal
+            // up, or no secrets). The on-screen text covers the never-synced case.
+            Serial.printf("[DevCompanion] GitHub on-open: auto-sync skipped "
+                          "(sync=%lld repos=%d; fresh/unfixed-clock/portal/no-secrets)\n",
+                          (long long)_ghLastSync, _repoCount);
             renderGithub();
         }
     } else {
