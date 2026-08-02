@@ -12,11 +12,16 @@
 //    - Decode GPIO21 hold-band gestures into ButtonEvent values.
 //    - Route events to the active app or handle launcher selection.
 //    - Run system tasks: battery refresh, Wi-Fi auto-shutoff, light-sleep.
+//
+//  Launcher layout (AGD·R1, split view): LEFT = app list (tap moves, hold
+//  opens); RIGHT = today's agenda timeline merged from the calendar cache
+//  by the pure seam core::agendaMergeToday (read-only, no interaction).
 // ===========================================================================
 #include <Arduino.h>
 #include "config.h"
 #include "app/App.h"
 #include "app/SystemContext.h"
+#include "core/AgendaMerge.h"   // agenda timeline seam (pure; CalendarEvent + TodoTask)
 
 class AppManager {
 public:
@@ -47,6 +52,8 @@ private:
 
     // --- Internal helpers ---
     void drawLauncher();            // render the home screen
+    void refreshAgenda();           // reload /calendar.json + re-merge timeline
+    void drawAgendaPanel();         // render the right-hand "Today" panel
     void handleButtonRaw();         // read GPIO, classify, dispatch
     void activateApp(int index);    // transition Launcher → AppActive
     void returnToLauncher();        // transition AppActive → Launcher
@@ -71,4 +78,18 @@ private:
     uint32_t       _bootMs         = 0;
     uint32_t       _lastBattMs     = 0;
     bool           _webUserManaged = false; // true once user toggles Wi-Fi by hand
+
+    // --- Agenda (split-view launcher, AGD·R1) ---
+    // Refreshed on every drawLauncher() (boot + return-to-launcher + tap):
+    // the calendar cache is re-read from the active FS (no network) and
+    // merged into today's timeline by the pure seam core::agendaMergeToday.
+    // The Todo slot is clean but unwired: the merge is passed nullptr/0
+    // until the backend decision (TODO(TODO-BACKEND) in AppRegistry.h).
+    core::CalendarEvent _agendaEvents[CAL_MAX_EVENTS];   // loaded cache
+    int                 _agendaEventCount  = 0;
+    int64_t             _agendaLastSyncUtc = 0;
+    int64_t             _agendaNowUtc      = 0;          // clock anchor used for the merge
+    core::AgendaItem    _agendaItems[AGENDA_MAX_ITEMS];  // merged timeline
+    int                 _agendaItemCount   = 0;
+    int                 _agendaNextIdx     = -1;         // "next up" highlight (-1 = none)
 };

@@ -7,7 +7,22 @@
 // ===========================================================================
 #include "app/AppManager.h"
 #include "core/ButtonClassify.h"
+#include "core/CalendarDate.h"              // todayStartUtc / civilFromUtc (agenda panel)
+#include "apps/calendar/CalendarStore.h"    // /calendar.json cache load (no network)
+#include <time.h>                           // time(nullptr) clock source
 #include <esp_sleep.h>   // ext0 + timer wakeup sources for light sleep
+
+// --- Small formatting helpers for the agenda panel (fixed UTC+8) -----------
+static String pad2(unsigned v) {
+    return v < 10 ? String("0") + String(v) : String(v);
+}
+
+// "HH:MM" local wall-clock for a UTC epoch instant.
+static String agendaHM(int64_t utc) {
+    int64_t y; unsigned m, d, hh, mm, ss;
+    core::civilFromUtc(utc, CAL_TZ_OFFSET_SEC, y, m, d, hh, mm, ss);
+    return pad2(hh) + ":" + pad2(mm);
+}
 
 // --- Construction ----------------------------------------------------------
 AppManager::AppManager(SystemContext &ctx)
@@ -58,13 +73,21 @@ void AppManager::drawLauncher() {
     d.setWifiState(wifi);
     d.setBattery(_ctx.batteryPct);
 
-    d.clearBuffer();
-    d.drawTextCentered(56, APP_LAUNCHER_TITLE, 2);
+    // Re-read the calendar cache + re-merge today's timeline on every draw
+    // (boot, return-to-launcher, selection tap) so the right panel is fresh.
+    refreshAgenda();
 
-    // App list with selection box on the highlighted item.
-    int lh = d.lineHeightFor(1) + 16;
-    int x  = DISPLAY_WIDTH / 2 - 220;
-    int y  = 160;
+    d.clearBuffer();
+
+    // ===== Left panel: app list (x: MARGIN_X .. ~356) =======================
+    d.drawText(MARGIN_X, 64, "Apps", 2);
+
+    // App list with selection box on the highlighted item, vertically
+    // centred inside the panel body (y 100..480).
+    int lh    = d.lineHeightFor(1) + 16;
+    int block = _appCount * lh;
+    int x     = MARGIN_X + 24;
+    int y     = 100 + (380 - block) / 2 + 36;
     for (int i = 0; i < _appCount; i++) {
         String label = String(_apps[i]->name());
         if (i == _launcherSel) {
@@ -75,15 +98,115 @@ void AppManager::drawLauncher() {
         y += lh;
     }
 
-    // Status line: Wi-Fi + battery.
+    // ===== Vertical divider ==================================================
+    d.fillRect(370, 60, 2, 440);           // thin 2 px rule, y 60..500
+
+    // ===== Right panel: today's agenda (read-only) ===========================
+    drawAgendaPanel();
+
+    // ===== Status + hint lines (bottom left) =================================
     String status = String("Wi-Fi: ") + (wifi ? "ON" : "OFF")
                   + "       Battery: " + String(_ctx.batteryPct) + "%";
     d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 40, status);
-
-    // Hint line.
     d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16,
         "Tap = move    Hold = open");
     d.flush(true);
+}
+
+// --- Internal: agenda data (split-view launcher, AGD·R1) -------------------
+void AppManager::refreshAgenda() {
+    // 1. Load the calendar cache from the active FS — SD/LittleFS read only,
+    //    NO network (the Calendar app owns syncing). CalendarStore's load()
+    //    contract: a missing / corrupt / oversized file yields 0 events.
+    CalendarStore store(_ctx.storage.fs());
+    _agendaEventCount = store.load(_agendaEvents, CAL_MAX_EVENTS, &_agendaLastSyncUtc);
+    if (_agendaEventCount < 0) _agendaEventCount = 0;      // defensive; load() never does
+
+    // 2. "Now": true UTC once NTP has fixed the clock; otherwise anchor at
+    //    the last-sync instant (the CalendarApp::uiNowUtc convention — the
+    //    cache was materialised at exactly that "now", so the day boundary
+    //    stays coherent). Never synced + no clock → 0 → the timeline renders
+    //    empty ("No events today") rather than at a garbage date.
+    int64_t now = (int64_t)time(nullptr);
+    if (now < CAL_CLOCK_MIN_EPOCH) now = _agendaLastSyncUtc;
+    if (now < CAL_CLOCK_MIN_EPOCH) now = 0;
+    _agendaNowUtc = now;
+
+    int64_t d0 = 0, d1 = 0;
+    if (now > 0) {
+        d0 = core::todayStartUtc(now, CAL_TZ_OFFSET_SEC);  // local midnight today (UTC)
+        d1 = d0 + 86400;                                   // local midnight tomorrow
+    }
+
+    // 3. Merge: calendar only for now. The Todo slot stays clean (nullptr/0)
+    //    until the backend decision (TODO(TODO-BACKEND)); the seam already
+    //    accepts tasks (native-tested), so wiring /todo.json in later is a
+    //    call-site change, never a rewrite.
+    _agendaItemCount = core::agendaMergeToday(
+        _agendaEvents, _agendaEventCount,
+        nullptr, 0,                        // Todo slot — not wired yet (AGD·R1)
+        now, d0, d1,
+        _agendaItems, AGENDA_MAX_ITEMS, &_agendaNextIdx);
+}
+
+// --- Internal: agenda panel rendering (right half of the launcher) ---------
+void AppManager::drawAgendaPanel() {
+    DisplayManager &d = _ctx.display;
+    const int rx = 396;                            // panel left edge (past divider)
+    const int rW = DISPLAY_WIDTH - MARGIN_X - rx;  // panel width (538 px)
+
+    // Header: "Today" + the date when the clock is valid.
+    String header = "Today";
+    if (_agendaNowUtc > 0) {
+        int64_t y; unsigned m, dd, hh, mm, ss;
+        core::civilFromUtc(_agendaNowUtc, CAL_TZ_OFFSET_SEC, y, m, dd, hh, mm, ss);
+        header += "  " + String((long)y) + "-" + pad2(m) + "-" + pad2(dd);
+    }
+    d.drawText(rx, 64, header, 2);
+
+    const int lh   = d.readerLineHeight() + 8;
+    const int yTop = 112;                          // first text baseline
+    const int yMax = 464;                          // room below for the Todo slot line
+    int y = yTop;
+
+    if (_agendaItemCount == 0) {
+        String msg = "No events today";
+        int w = d.textWidth(msg, true);
+        int cy = (yTop + yMax) / 2;
+        d.drawBookText(rx + (rW - w) / 2, cy, msg);        // centred in the panel
+        if (_agendaLastSyncUtc <= 0)
+            d.drawBookText(rx, cy + 30, "Open the Calendar app to sync.");
+    } else {
+        bool allDayLabel = false;
+        for (int i = 0; i < _agendaItemCount; i++) {
+            const core::AgendaItem &it = _agendaItems[i];
+            // The panel is read-only (no scroll gesture): draw what fits and
+            // count the overflow rather than running off the panel.
+            int rowsNeeded = (it.allDay && !allDayLabel) ? 2 : 1;   // +section label
+            if (y + rowsNeeded * lh > yMax) {
+                d.drawBookText(rx, y, String("+ ") + String(_agendaItemCount - i) + " more");
+                break;
+            }
+            if (i == _agendaNextIdx)               // "next up" highlight box
+                d.drawSelectionBox(rx - 8, y - d.readerAscender() - 3, rW + 12, lh - 2);
+            if (it.allDay) {
+                if (!allDayLabel) {
+                    d.drawBookText(rx, y, "All-day");
+                    y += lh;
+                    allDayLabel = true;
+                }
+                d.drawBookText(rx + 16, y, String("- ") + it.title);
+            } else {
+                d.drawBookText(rx, y, agendaHM(it.timeUtc) + "  " + String(it.title));
+            }
+            y += lh;
+        }
+    }
+
+    // Todo slot placeholder (AGD·R1): the merge seam accepts tasks but the
+    // firmware passes nullptr/0 until the backend decision (TODO(TODO-BACKEND)).
+    // Small book font reads as "de-emphasised" on the 1-bit panel.
+    d.drawBookText(rx, DISPLAY_HEIGHT - 40, "(Tasks: pending backend)");
 }
 
 // --- Internal: button decode + dispatch ------------------------------------
