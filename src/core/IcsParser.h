@@ -11,6 +11,9 @@
 //      by one space/tab is a continuation; the break + single whitespace char
 //      are removed before parsing.
 //    - Text escapes in SUMMARY: \\n \\, \\; \\\\ (and a stray backslash drops).
+//    - UID: captured bounded + NUL-terminated into CalendarEvent::uid (TODO-R1);
+//      the Todo app uses it as a stable done-state identity that survives a
+//      phone-side re-sync. Over-long UIDs are truncated, never overran.
 //    - DTSTART/DTEND in the three forms Google emits:
 //        ...T090000Z            UTC instant
 //        ;TZID=...:...T090000   local wall-clock at the FIXED tzOffsetSec
@@ -331,11 +334,16 @@ inline int parseIcsFeed(const char *ics, uint8_t feedIdx, CalendarEvent *out,
                     }
                 } else if (strcmp(name, "SUMMARY") == 0) {
                     icsDecodeText(value, e.title, CAL_TITLE_MAX);  // bounded decode
+                } else if (strcmp(name, "UID") == 0) {
+                    // TODO-R1: stable identity for the Todo app's device-local
+                    // done-state. Bounded decode; a later UID line wins (Google
+                    // emits exactly one). Empty when the feed omits UID.
+                    icsDecodeText(value, e.uid, CAL_UID_MAX);
                 } else if (strcmp(name, "RRULE") == 0) {
                     icsParseRrule(value, tzOffsetSec, e.freq, e.interval, e.count,
                                   e.untilUtc, e.bydayMask);
                 }
-                // DTSTAMP, UID, CREATED, SEQUENCE, STATUS, ... ignored.
+                // DTSTAMP, CREATED, SEQUENCE, STATUS, ... ignored (UID captured above).
             }
         }
         // Any line outside a VEVENT (VCALENDAR/VTIMEZONE/VTODO/garbage) is skipped.

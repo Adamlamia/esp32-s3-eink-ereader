@@ -108,6 +108,12 @@
 #define CAL_TZ_OFFSET_SEC    (8 * 3600)  // fixed UTC offset: Malaysia (MYT, UTC+8, no DST)
 #define CAL_MAX_EVENTS       64          // max concrete events held in memory / per sync
 #define CAL_TITLE_MAX        64          // event title buffer (chars, incl. NUL terminator)
+#define CAL_UID_MAX          96          // event UID buffer (chars, incl. NUL terminator);
+                                         // Google UIDs are ~37 chars ("...@google.com"),
+                                         // so 96 covers long third-party UIDs with
+                                         // headroom. Captured by core::parseIcsFeed
+                                         // (TODO·R1) so the Todo app can match done-state
+                                         // by a stable identity that survives re-syncs
 #define CAL_SYNC_HOUR        6           // hour-of-day (local) the daily sync is due
 #define CAL_SYNC_WINDOW_DAYS 14          // rolling window of days to materialise events for
 #define CAL_MAX_CALENDARS    4           // max ICS feeds (Google calendars) tracked
@@ -225,6 +231,51 @@
 #define QR_MIN_VERSION      3        // smallest QR version QrApp will emit
 #define QR_MAX_VERSION      13       // largest: 69 modules, 425 byte-mode chars
                                      // (ECC LOW) and a 596-byte module buffer
+
+// --- Todo app ---------------------------------------------------------------
+// Todo (TODO·R1). Tasks live in a dedicated "Tasks" Google Calendar fetched
+// via the EXISTING ICS mechanism (core/IcsParser.h + the calendar's portal-
+// guarded / RAII-WiFi-off / NTP / HTTPS lifecycle) — zero new auth. Each task
+// is an ALL-DAY event in that calendar (title = task text); the user edits
+// tasks in the Google Calendar app on the phone and the device picks them up
+// on the next sync. Done-state is DEVICE-LOCAL only: persisted at
+// TODO_CACHE_FILE, never pushed back to Google.
+//
+// Sizing constants for the header-only seam in src/core/TodoModel.h (no heap;
+// every capacity bounds a fixed static buffer), the /todo.json cache
+// (src/apps/todo/TodoStore) and the sync session (src/apps/todo/TodoSync).
+#define TODO_CACHE_FILE      "/todo.json"    // cache path on the active FS: tasks
+                                             // + done-set + lastSyncUtc (the Agenda
+                                             // feature reads this cache later)
+#define TODO_MAX_TASKS       32          // max tasks held in memory / per sync
+#define TODO_MAX_EVENTS      48          // parsed ICS events per sync (the all-day
+                                             // ones become tasks; timed events skip)
+#define TODO_TITLE_MAX       CAL_TITLE_MAX   // task title buffer == event title buffer
+#define TODO_UID_MAX         CAL_UID_MAX     // done-set key buffer == event UID buffer
+                                             // (done-state is keyed by the ICS UID)
+#define TODO_DONE_MAX        48          // max done-keys persisted (stale keys are
+                                             // pruned on every sync, so this only
+                                             // bounds outstanding + recently done)
+#define TODO_BODY_MAX        8192        // ICS body cap: the parser's unfold buffer
+                                             // (ICS_BUF_MAX) holds 8191 chars, so a
+                                             // larger body could never fully parse
+#define TODO_STALE_SEC       (6 * 3600)  // on-open resync threshold: 6 h since sync
+#define TODO_MIN_BATTERY_FOR_SYNC 15     // % floor for AUTO (on-open) resync only;
+                                             // manual "Sync now" is always allowed
+#define TODO_LABEL_MAX       24          // calendar label buffer (chars, incl. NUL)
+
+// The Tasks calendar ICS URL is a SECRET (it embeds a private API key) and
+// lives in src/secrets.h (git-ignored, #included above via __has_include):
+//
+//   #define TODO_ICS_URL    "https://calendar.google.com/calendar/ical/xxx/basic.ics"
+//   #define TODO_ICS_LABEL  "Tasks"        // optional, <= 23 chars, shown on screen
+//
+// TODO_ICS_URL has NO compiled-in default (there is no sensible one): without
+// it the firmware still builds — the app shows its empty state ("No Tasks
+// calendar (set TODO_ICS_URL)") and "Sync now" reports the same on screen.
+#ifndef TODO_ICS_LABEL
+  #define TODO_ICS_LABEL "Tasks"          // default label when secrets.h omits it
+#endif
 
 // --- Power management -----------------------------------------------------
 #define IDLE_SLEEP_SECONDS  120  // enter light sleep after inactivity
