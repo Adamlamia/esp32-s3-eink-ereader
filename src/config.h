@@ -291,6 +291,44 @@
                                        // busy day has more, the alphabetically-first
                                        // all-day items + earliest timed items win)
 
+// --- Dev Companion (batch 2) -------------------------------------------------
+// Dev Companion (DEV·R1, docs/PROJECT_BRIEF.md §2.3 Feature 5): a reference
+// viewer (full-screen pinouts/schematics stored on SD) + a read-only GitHub
+// dashboard (open PRs + issues + last CI status). Sizing constants for the
+// header-only seams in src/core/RefsIndex.h + src/core/GithubModel.h (no heap;
+// every capacity bounds a fixed static buffer), the /github.json cache and the
+// sync session (src/apps/devcompanion/GithubSync, which reuses the calendar's
+// Wi-Fi/NTP/HTTPS + RAII-WiFi-off + portal-guard lifecycle via app/WifiSession).
+#define REFS_DIR            "/refs"        // SD dir holding the .raw reference images
+#define REFS_INDEX_FILE     "/refs/refs_index.txt"  // optional manifest: "file.raw|Label"
+#define REFS_FILE_MAX       32          // reference filename buffer (chars, incl. NUL)
+#define REFS_LABEL_MAX      40          // reference label buffer (chars, incl. NUL)
+#define REFS_MAX_ENTRIES    16          // max reference images held in the index
+#define REFS_RAW_SIZE       259200      // 960*540/2 bytes: one full 4-bpp framebuffer
+                                        // dump (480 bytes/row x 540 rows, no padding)
+
+#define GITHUB_CACHE_FILE   "/github.json"   // cache path on the active FS
+#define GITHUB_NAME_MAX     40          // "owner/repo" display buffer (chars, incl. NUL)
+#define GITHUB_MAX_REPOS    4           // max configured repos (GITHUB_REPO_0..3)
+#define GITHUB_STALE_SEC    (4 * 3600)  // on-open resync threshold: 4 h since fetch
+#define GITHUB_BODY_MAX     8192        // reject API bodies above this (search responses
+                                        // with per_page=1 are well under 1 KB)
+
+// The GitHub Personal Access Token + repo list are SECRETS and live in
+// src/secrets.h (git-ignored, #included above via __has_include). The PAT needs
+// only the public_repo (or fine-grained "contents"/"actions" read) scope — the
+// dashboard is strictly READ-ONLY. For n = 0..GITHUB_MAX_REPOS-1, every line is
+// optional and individually #ifdef-guarded by GithubSync, so the firmware builds
+// with ZERO GitHub secrets (the app then shows its empty state):
+//
+//   #define GITHUB_PAT       "ghp_..."                       // read-only PAT
+//   #define GITHUB_REPO_0    "Adamlamia/esp32-s3-eink-ereader"
+//   #define GITHUB_REPO_1    "owner/another-repo"
+//   // ... GITHUB_REPO_2, GITHUB_REPO_3
+//
+// Without GITHUB_PAT the firmware still builds: the GitHub section shows
+// "Set GITHUB_PAT in secrets.h" and "Sync now" reports the same on screen.
+
 // --- Power management -----------------------------------------------------
 #define IDLE_SLEEP_SECONDS  120  // enter light sleep after inactivity
 #define WEB_AUTO_START    0    // 0 = portal OFF at boot (calendar sync works); 1 = auto-start AP
