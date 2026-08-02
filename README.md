@@ -43,6 +43,13 @@ Wi-Fi and upload.
   Google Calendar via the same secret-ICS-URL mechanism (zero new auth).
   Tap moves, medium-hold toggles done, long-hold opens the menu. Done-state
   is device-local only (`/todo.json`); tasks are edited on your phone.
+- **Agenda (split-view launcher)** — the home screen is a split view: the
+  app list on the left, and **today's timeline** on the right, merged from
+  the calendar cache (`/calendar.json`) by a pure, host-tested seam
+  (`src/core/AgendaMerge.h`) — no new network code. All-day items lead
+  (alphabetical), then timed events as `HH:MM  Title` with the **next item
+  highlighted**. A clean slot for Tasks is reserved ("pending backend")
+  while the Todo app is deferred.
 
 ---
 
