@@ -50,6 +50,12 @@ Wi-Fi and upload.
   (alphabetical), then timed events as `HH:MM  Title` with the **next item
   highlighted**. A clean slot for Tasks is reserved ("pending backend")
   while the Todo app is deferred.
+- **Dev Companion** — a two-section utility app for hackers. **References**
+  shows full-screen pinouts/schematics stored on the SD card (`/refs/*.raw`,
+  prepared on your laptop with `tools/make_refs.py`), fit-to-screen with no
+  zoom; tap cycles images. **GitHub** is a read-only dashboard of your repos
+  (open PRs + open issues + last CI status) driven by a PAT in `src/secrets.h`.
+  Medium-hold switches section / syncs now; long-hold opens the menu.
 
 ---
 
@@ -230,6 +236,83 @@ format"), added to `src/secrets.h` (git-ignored — never commit it):
 Both lines are optional — without `TODO_ICS_URL` the firmware is fully
 functional and the app shows "No Tasks calendar (set TODO_ICS_URL)". Wi-Fi
 still requires `WIFI_STA_SSID` / `WIFI_STA_PASS` in `src/secrets.h`.
+
+---
+
+## 🛠 Dev Companion
+
+The launcher's **Dev Companion** app bundles two hacker utilities behind one
+icon. **Medium-hold** switches between the two sections (and, while in the
+GitHub section, medium-hold is **Sync now**); **long-hold** opens the menu
+(*References* · *GitHub* · *Back to Home*). There is no background schedule —
+the GitHub cache is refreshed on open when stale, never on a timer.
+
+### Reference images
+
+The **References** section shows full-screen pinouts / schematics straight
+from the SD card. Images are stored as raw framebuffer dumps under `/refs/`,
+which the device blits directly to the panel (no on-device decoding). Prepare
+them on your laptop with the host-side Pillow converter `tools/make_refs.py`
+(`pip install Pillow`):
+
+```bash
+# one image -> <stem>.raw  (+ a one-line refs_index.txt beside it)
+python tools/make_refs.py pinout.png
+
+# explicit output path
+python tools/make_refs.py schematic.jpg refs/board.raw
+
+# a whole directory -> one .raw per image + a refs_index.txt manifest
+python tools/make_refs.py --batch my_pinouts/ tools/refs/
+```
+
+The script fits each image within **960×540** preserving aspect ratio (no
+crop, no zoom), pads with white, converts to grayscale and quantizes to the
+panel's 16 grey levels (`level = pixel // 16`), then packs two pixels per
+byte — **high nibble = left pixel**, low nibble = right pixel, row-major with
+no padding — producing a `.raw` file of exactly **259,200 bytes**
+(480 bytes/row × 540 rows). Run `python tools/make_refs.py --help` for the
+full framebuffer-format description.
+
+Copy the resulting `.raw` files (and the optional `refs_index.txt`) to
+`/refs/` on the SD card. The manifest maps each file to a human-readable
+label, one line each:
+
+```
+example.raw|Example
+esp32_s3_pinout.raw|Esp32 S3 Pinout
+```
+
+If `refs_index.txt` is absent the viewer falls back to listing the `.raw`
+files alphabetically (label = filename). With no `/refs/` directory (or no
+`.raw` files) the app shows "No reference images" and the hint to copy them
+to the SD card. A worked example (`tools/refs/example.png` → `example.raw`)
+is committed so you can see the expected output.
+
+### GitHub dashboard (read-only)
+
+The **GitHub** section lists your repositories, one line each:
+`owner/repo   PRs:N  Issues:N  CI:OK`. It is strictly read-only — three HTTPS
+GETs per repo against the GitHub REST API (open-PR count, open-issue count,
+last Actions run). Results are cached at `/github.json`; opening the section
+with a cache older than 4 h triggers an automatic refresh, and medium-hold
+forces one immediately. The sync reuses the calendar's Wi-Fi/NTP/HTTPS
+lifecycle (STA-only, portal-guarded, radio always powered off afterwards).
+
+Configure it in `src/secrets.h` (git-ignored — never commit it); every line
+is optional:
+
+```c
+#define GITHUB_PAT      "ghp_..."                       // fine-grained or classic PAT (read-only)
+#define GITHUB_REPO_0   "Adamlamia/esp32-s3-eink-ereader"
+#define GITHUB_REPO_1   "owner/another-repo"
+// ... up to GITHUB_REPO_3
+```
+
+Without `GITHUB_PAT` the section shows "Set GITHUB_PAT in secrets.h"; without
+any `GITHUB_REPO_n` a sync reports "No GITHUB_REPO_n in secrets.h". Wi-Fi
+still requires `WIFI_STA_SSID` / `WIFI_STA_PASS`. The PAT is sent as a bearer
+token and is never written to the SD card or drawn on screen.
 
 ---
 
