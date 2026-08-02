@@ -22,11 +22,11 @@ const C = {
 
 // ── Status header ────────────────────────────────────────────────────────────
 const meta = {
-  status: "PAUSED by user · batch 1: 3/4 done & MERGED · main 82fd48a (QR + Todo), 215 tests, firmware build green",
+  status: "PAUSED · batch 1: QR+Todo merged then Todo DEFERRED/disabled · main 0ac6f25 · device reflashed (launcher: Reader/Calendar/Weather/QR)",
   updated: "2026-08-02",
-  round: "Holding — next: Feature 4 (Agenda, closes batch 1 + FULL PAUSE); its Todo cache dependency is now on main",
-  nextHumanAction: "Resume: say 'start Agenda' — feature/todo is merged, Agenda can read /todo.json from main",
-  branch: "main (82fd48a, QR+Todo merged) · feature/todo branch + worktree kept (now even with main)",
+  round: "Holding — Todo backend decision deferred (TODO(TODO-BACKEND)); next feature = Agenda (closes batch 1 + FULL PAUSE)",
+  nextHumanAction: "Say 'start Agenda' when ready, or revisit the Todo backend (Option C bridge / Option B OAuth2)",
+  branch: "main (0ac6f25) · feature/todo kept · Todo disabled in launcher",
 };
 
 // ── Locked tech stack (so decisions aren't re-litigated) ─────────────────────
@@ -56,7 +56,7 @@ const milestones: { id: string; name: string; progress: number; status: string; 
   { id: "M8", name: "Calendar review & hardening", progress: 100, status: "done", rounds: "CAL·R4", done: "Zero Critical findings, feature ready to merge to main" },
   { id: "M9", name: "Weather feature (batch 1 of 4)", progress: 95, status: "done", rounds: "WTH·R1–R2", done: "Open-Meteo sync + cache + UI on device, 0 Critical findings, merged to main, live-verified" },
   { id: "M10", name: "QR Toolkit (batch 2 of 4)", progress: 100, status: "done", rounds: "QR·R1–R2", done: "WiFi/DuitNow/URL QRs, tap cycles, EMVCo seam tested" },
-  { id: "M11", name: "Todo (batch 3 of 4)", progress: 95, status: "done", rounds: "TODO·R1–R2", done: "Tasks calendar via existing ICS, local done-state on SD" },
+  { id: "M11", name: "Todo (batch 3 of 4) — DEFERRED", progress: 95, status: "blocked", rounds: "TODO·R1–R2", done: "Built+tested+merged, but DISABLED in launcher (TODO(TODO-BACKEND)): Google Tasks has no ICS feed; revisit backend" },
   { id: "M12", name: "Agenda (batch 4 of 4 · FULL PAUSE after)", progress: 0, status: "pending", rounds: "AGD·Rx", done: "Launcher split view merging calendar + todo caches, next item highlighted" },
 ];
 
@@ -148,6 +148,7 @@ const markerLedger: { marker: string; open: number | null; note: string }[] = [
   { marker: "TODO(R4)", open: 0, note: "All calendar R4 findings closed" },
   { marker: "TODO(WTH-R2)", open: 0, note: "All 3 resolved in WTH·R2: 2 → WifiSession extraction, 1 → reclassified TODO(TLS)" },
   { marker: "TODO(TLS)", open: 3, note: "CalendarSync + WeatherSync + TodoSync — replace setInsecure() with CA validation; deferred to shared hardening round (TodoSync extended the tag in TODO·R1)" },
+  { marker: "TODO(TODO-BACKEND)", open: 1, note: "AppRegistry.h — Todo disabled in launcher pending a backend that serves undated tasks (Google Tasks has no ICS feed). Re-enable by uncommenting the two TodoApp lines" },
   { marker: "TODO(QR-R2)", open: 0, note: "QR·R2 review-closed: Q1 Safety + M1 Suggestion fixed & pinned; 0 Critical open; on-device scan BLOCKED (process gate, no code marker)" },
   { marker: "TODO(TODO-R2)", open: 0, note: "TODO·R2 review-closed: T1 phantom-task fix pinned; 0 Critical open; shared-seam UID change audited additive; live sync BLOCKED (process + soft gate)" },
 ];
@@ -195,6 +196,7 @@ const decisions: { decision: string; status: string; note: string }[] = [
   { decision: "Todo gestures: MediumHold=toggle done, LongHold=menu", status: "Resolved", note: "TODO·R1: LongHold-as-menu is the universal house convention; MediumHold is the secondary-action band; Tap moves highlight (2026-08-02)" },
   { decision: "/todo.json stores tasks + done-set + sync stamp", status: "Resolved", note: "TODO·R1: UI must render across reboots and Agenda will read this cache; done-only seam still delivered + unit-tested independently (2026-08-02)" },
   { decision: "deserializeTodoCache skips phantom task elements", status: "Resolved", note: "TODO·R2 T1: corrupt/adversarial tasks[] entries (non-object / field-less) no longer materialise (untitled) rows; defence-in-depth pinned by regression test (2026-08-02)" },
+  { decision: "Todo DEFERRED & disabled in launcher", status: "Deferred", note: "2026-08-02 user decision: Google Tasks (product) has NO ICS/CalDAV feed (OAuth2 API only); the all-day-calendar source only suits date-bounded tasks, owner's are mostly undated. Code+31 tests kept merged; commented out of AppRegistry (TODO(TODO-BACKEND)); reflash removed it from launcher. Revisit Option C (ICS bridge) vs Option B (OAuth2) (2026-08-02)" },
 ];
 
 // ── Risks & mitigations ──────────────────────────────────────────────────────
