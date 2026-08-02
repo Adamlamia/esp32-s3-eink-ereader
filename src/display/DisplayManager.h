@@ -28,6 +28,19 @@ public:
     // QR modules straight into the framebuffer (clipped by the driver).
     void fillRect(int x, int y, int w, int h);
 
+    // Filled rectangle in an arbitrary grayscale shade (0 = black .. 255 =
+    // white). Used by the Dev Companion reference viewer to put a white plate
+    // behind the label overlay so it stays legible over any image (clipped by
+    // the driver, exactly like fillRect).
+    void fillRectShade(int x, int y, int w, int h, uint8_t shade);
+
+    // Blit a full-screen 4-bpp raw framebuffer dump straight into the
+    // framebuffer (high nibble = left pixel, row-major, no padding — the format
+    // produced by tools/make_refs.py). `len` is clamped to the framebuffer size
+    // (960*540/2 = 259200 bytes); a short buffer leaves the tail untouched.
+    // Used by the Dev Companion reference viewer. No-op on null data/buffer.
+    void blitRaw(const uint8_t *data, size_t len);
+
     // Compact reading font (Georgia) used for book body + status bar.
     // Two generated sizes: normal (~14pt) and small (~10pt), user-selectable.
     void drawBookText(int x, int y, const String &text);

@@ -108,6 +108,19 @@ void DisplayManager::fillRect(int x, int y, int w, int h) {
     epd_fill_rect(x, y, w, h, INK, _framebuffer);
 }
 
+void DisplayManager::fillRectShade(int x, int y, int w, int h, uint8_t shade) {
+    // Grayscale filled rectangle (0 = black .. 255 = white); the driver maps the
+    // shade's high nibble into the 4-bpp framebuffer and clips to the panel.
+    epd_fill_rect(x, y, w, h, shade, _framebuffer);
+}
+
+void DisplayManager::blitRaw(const uint8_t *data, size_t len) {
+    if (!data || !_framebuffer) return;
+    const size_t fbBytes = (size_t)EPD_WIDTH * EPD_HEIGHT / 2;   // 259200
+    if (len > fbBytes) len = fbBytes;                            // clamp to buffer
+    memcpy(_framebuffer, data, len);
+}
+
 void DisplayManager::showMessage(const String &title, const String &body) {
     clearBuffer();
     drawTextCentered(DISPLAY_HEIGHT / 2 - 40, title, 2);
