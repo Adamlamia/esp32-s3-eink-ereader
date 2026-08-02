@@ -75,6 +75,31 @@ void test_refs_crlf_and_field_whitespace(void) {
     TEST_ASSERT_EQUAL_STRING("Wiring", e[1].label);
 }
 
+void test_refs_missing_final_newline(void) {
+    // A manifest whose last line has NO trailing newline must still parse it
+    // (Windows / hand-edited indexes are not required to end with '\n').
+    RefsEntry e[REFS_MAX_ENTRIES];
+    int n = parseRefsIndex("pinout.raw|Pinout\nwiring.raw|Wiring", e, REFS_MAX_ENTRIES);
+    TEST_ASSERT_EQUAL_INT(2, n);
+    TEST_ASSERT_EQUAL_STRING("wiring.raw", e[1].file);
+    TEST_ASSERT_EQUAL_STRING("Wiring", e[1].label);
+
+    // a single line with no newline at all
+    TEST_ASSERT_EQUAL_INT(1, parseRefsIndex("solo.raw", e, REFS_MAX_ENTRIES));
+    TEST_ASSERT_EQUAL_STRING("solo.raw", e[0].file);
+    TEST_ASSERT_EQUAL_STRING("solo", e[0].label);   // stem fallback
+}
+
+void test_refs_multiple_pipes_first_wins(void) {
+    // Documented contract: the FIRST '|' is the file/label separator; any extra
+    // pipes belong to the label (never split further, never dropped).
+    RefsEntry e[REFS_MAX_ENTRIES];
+    int n = parseRefsIndex("a.raw|Label|Extra|More\n", e, REFS_MAX_ENTRIES);
+    TEST_ASSERT_EQUAL_INT(1, n);
+    TEST_ASSERT_EQUAL_STRING("a.raw", e[0].file);
+    TEST_ASSERT_EQUAL_STRING("Label|Extra|More", e[0].label);
+}
+
 // ===========================================================================
 //  parseRefsIndex — missing '|' falls back to the filename sans extension
 // ===========================================================================
@@ -164,6 +189,18 @@ void test_refs_null_and_zero_safe(void) {
     TEST_ASSERT_EQUAL_INT(0, parseRefsIndex("a.raw|A", e, -5));
 }
 
+// REGRESSION (DEV·R2 D2): only an EXACT full framebuffer is a valid .raw dump.
+// A short / truncated / oversized file is corrupt and must be rejected by the
+// viewer (it used to be partial-blitted -> garbage on the never-cleared panel).
+void test_refs_raw_size_valid(void) {
+    TEST_ASSERT_TRUE(core::refsRawSizeValid((size_t)REFS_RAW_SIZE));     // exact frame
+    TEST_ASSERT_FALSE(core::refsRawSizeValid(0));                        // empty
+    TEST_ASSERT_FALSE(core::refsRawSizeValid(1));                        // trivial
+    TEST_ASSERT_FALSE(core::refsRawSizeValid((size_t)REFS_RAW_SIZE - 1)); // truncated
+    TEST_ASSERT_FALSE(core::refsRawSizeValid((size_t)REFS_RAW_SIZE + 1)); // oversized
+    TEST_ASSERT_EQUAL_INT(259200, (int)REFS_RAW_SIZE);                    // 960*540/2
+}
+
 // ===========================================================================
 //  parseGithubCount — search/issues total_count
 // ===========================================================================
@@ -199,6 +236,19 @@ void test_count_malformed(void) {
 
 void test_count_empty(void) {
     TEST_ASSERT_EQUAL_INT(-1, parseGithubCount(""));
+}
+
+// REGRESSION (DEV·R2 D5): an HTTP error body (rate limit / bad credentials) is a
+// well-formed JSON object WITHOUT total_count -> must fail loudly (-1), never be
+// misread as a count. (GithubSync only parses on HTTP 200, but the seam itself
+// must treat these as errors.)
+void test_count_http_error_body(void) {
+    TEST_ASSERT_EQUAL_INT(-1, parseGithubCount(
+        "{\"message\":\"API rate limit exceeded for 1.2.3.4.\","
+        "\"documentation_url\":\"https://docs.github.com/rest\"}"));
+    TEST_ASSERT_EQUAL_INT(-1, parseGithubCount("{\"message\":\"Bad credentials\"}"));
+    TEST_ASSERT_EQUAL_INT(-1, parseGithubCount(
+        "{\"message\":\"Validation Failed\",\"errors\":[{\"code\":\"invalid\"}]}"));
 }
 
 // ===========================================================================
@@ -388,17 +438,21 @@ int main(int, char **) {
     RUN_TEST(test_refs_normal);
     RUN_TEST(test_refs_blank_lines);
     RUN_TEST(test_refs_crlf_and_field_whitespace);
+    RUN_TEST(test_refs_missing_final_newline);
+    RUN_TEST(test_refs_multiple_pipes_first_wins);
     RUN_TEST(test_refs_missing_pipe_fallback);
     RUN_TEST(test_refs_pipe_with_empty_label_falls_back);
     RUN_TEST(test_refs_oversized_truncation);
     RUN_TEST(test_refs_empty_input);
     RUN_TEST(test_refs_max_capacity);
     RUN_TEST(test_refs_null_and_zero_safe);
+    RUN_TEST(test_refs_raw_size_valid);
     // parseGithubCount
     RUN_TEST(test_count_valid);
     RUN_TEST(test_count_missing_total);
     RUN_TEST(test_count_malformed);
     RUN_TEST(test_count_empty);
+    RUN_TEST(test_count_http_error_body);
     // parseGithubCi
     RUN_TEST(test_ci_success);
     RUN_TEST(test_ci_failure);
