@@ -22,11 +22,11 @@ const C = {
 
 // ── Status header ────────────────────────────────────────────────────────────
 const meta = {
-  status: "PAUSED · batch 1: QR+Todo merged then Todo DEFERRED/disabled · main 0ac6f25 · device reflashed (launcher: Reader/Calendar/Weather/QR)",
+  status: "BATCH 1 COMPLETE — FULL PAUSE · main 1efa36b · Agenda split-view live on device · 229 tests · Todo deferred",
   updated: "2026-08-02",
-  round: "Holding — Todo backend decision deferred (TODO(TODO-BACKEND)); next feature = Agenda (closes batch 1 + FULL PAUSE)",
-  nextHumanAction: "Say 'start Agenda' when ready, or revisit the Todo backend (Option C bridge / Option B OAuth2)",
-  branch: "main (0ac6f25) · feature/todo kept · Todo disabled in launcher",
+  round: "FULL PAUSE (PROJECT_BRIEF §2.2) — batch 2 (Dev Companion, Voice Journal) awaits user go-signal",
+  nextHumanAction: "Say 'start batch 2' when ready, or revisit Todo backend / on-device validation",
+  branch: "main (1efa36b) · feature/todo + feature/qr kept",
 };
 
 // ── Locked tech stack (so decisions aren't re-litigated) ─────────────────────
@@ -57,7 +57,7 @@ const milestones: { id: string; name: string; progress: number; status: string; 
   { id: "M9", name: "Weather feature (batch 1 of 4)", progress: 95, status: "done", rounds: "WTH·R1–R2", done: "Open-Meteo sync + cache + UI on device, 0 Critical findings, merged to main, live-verified" },
   { id: "M10", name: "QR Toolkit (batch 2 of 4)", progress: 100, status: "done", rounds: "QR·R1–R2", done: "WiFi/DuitNow/URL QRs, tap cycles, EMVCo seam tested" },
   { id: "M11", name: "Todo (batch 3 of 4) — DEFERRED", progress: 95, status: "blocked", rounds: "TODO·R1–R2", done: "Built+tested+merged, but DISABLED in launcher (TODO(TODO-BACKEND)): Google Tasks has no ICS feed; revisit backend" },
-  { id: "M12", name: "Agenda (batch 4 of 4 · FULL PAUSE after)", progress: 0, status: "pending", rounds: "AGD·Rx", done: "Launcher split view merging calendar + todo caches, next item highlighted" },
+  { id: "M12", name: "Agenda (batch 4 of 4 · FULL PAUSE after)", progress: 100, status: "done", rounds: "AGD·R1–R2", done: "Split-view launcher: left=apps, right=today's timeline (calendar-only, clean Todo slot), next-item highlighted; 0 Critical; flashed to device" },
 ];
 
 // ── Prompt chain — ACTIVE track: Batch-1 features (Weather → QR → Todo → Agenda) ─
@@ -68,7 +68,8 @@ const chain: { r: string; pattern: string; scope: string; status: StepStatus; no
   { r: "QR·R2", pattern: "Review & Fix", scope: "CSPMO review of feature/qr, resolve any findings, final verification", status: "done", note: "3 commits (2103b42/b447f34/d0dc5fa) · 184 tests (+2 regr) · 0 Critical · Q1 Safety fixed (tag-63 reject) · M1 static_assert · PM-verified" },
   { r: "TODO·R1", pattern: "Implementation", scope: "core/TodoModel.h (ICS task extraction + done-state merge) + /todo.json store + TodoSync (reuse WifiSession+parseIcsFeed) + TodoApp checklist UI + AppRegistry", status: "done", note: "5 commits (b89b9f2/0fff32b/f23c385/6b975b7/6cd6249) · 214 tests (+30) · RAM 15.2% Flash 31.9% · degraded green · UID done-identity · shared parser extended (baseline safe) · PM-verified" },
   { r: "TODO·R2", pattern: "Review & Fix", scope: "CSPMO review of feature/todo, resolve findings, final verification", status: "done", note: "3 commits (7dc6d48/06f32c0/67bc292) · 215 tests (+1 regr) · 0 Critical · T1 phantom-task fix · shared-seam UID change verified additive · PM-verified" },
-  { r: "AGD·Rx", pattern: "TBD", scope: "Feature 4 — Agenda split-view launcher (closes batch 1, FULL PAUSE)", status: "pending", note: "depends on Calendar + Todo caches" },
+  { r: "AGD·R1", pattern: "Implementation", scope: "core/AgendaMerge.h seam + AppManager split-view launcher (calendar-only, clean Todo slot) + native tests + config.h AGENDA_* + README", status: "done", note: "4 commits (eed51b4/38db6bd/e91d4c9/ecf3d30) · 228 tests (+13) · RAM 19.7% Flash 31.7% · PM-verified" },
+  { r: "AGD·R2", pattern: "Review & Fix", scope: "CSPMO review of Agenda feature, observability fix, capacity regression pin", status: "done", note: "3 commits (1170a33/5686f75/1efa36b) · 229 tests (+1 regr) · 0 Critical 0 Safety · A1 serial log + A5 capacity pin · PM-verified" },
 ];
 
 // ── Secondary track: CalendarApp (COMPLETE, merged to main c75e50d) ──────────
@@ -138,6 +139,11 @@ const verificationTimeline: { when: string; round: string; what: string; result:
   { when: "2026-08-02", round: "TODO·R2", what: "CSPMO review + shared-seam audit", result: "SUCCESS — 0 Critical, 1 Suggestion fixed (T1); CalendarEvent.uid + IcsParser UID capture verified additive (baseline green)" },
   { when: "2026-08-02", round: "MERGE", what: "git merge --no-ff feature/todo → main 82fd48a", result: "SUCCESS — main re-run 215/215 tests + firmware build RAM 15.2% Flash 31.9%; branch kept" },
   { when: "2026-08-02", round: "FLASH", what: "pio run -e lilygo_t5_47_s3 -t upload (COM7)", result: "SUCCESS — hash verified, hard reset; serial port live. On-screen QR/Todo smoke-test = user to confirm" },
+  { when: "2026-08-02", round: "AGD·R1", what: "pio test -e native (PM re-run)", result: "SUCCESS — 228/228 (215 + 13 new agenda) · verified independently by PM" },
+  { when: "2026-08-02", round: "AGD·R1", what: "pio run -e lilygo_t5_47_s3", result: "SUCCESS — RAM 19.7%, Flash 31.7%" },
+  { when: "2026-08-02", round: "AGD·R2", what: "pio test -e native (PM re-run)", result: "SUCCESS — 229/229 (228 + 1 regression) · verified independently by PM" },
+  { when: "2026-08-02", round: "AGD·R2", what: "CSPMO review", result: "SUCCESS — 0 Critical, 0 Safety; A1 Observability fixed (serial log), A5 capacity pin added" },
+  { when: "2026-08-02", round: "AGD·FLASH", what: "pio run -e lilygo_t5_47_s3 -t upload (COM7)", result: "SUCCESS — hash verified, hard reset; Agenda split-view launcher on device" },
   { when: "2026-08-01", round: "WTH·R2", what: "marker census", result: "TODO(WTH-R2)=0 · TODO(TLS)=2 · TODO(R2)=8 unchanged" },
 ];
 
@@ -273,6 +279,9 @@ const clearedChecks: { name: string; verified: string }[] = [
   { name: "Todo R2 staging cleanup corrected", verified: "2026-08-02 by PM; report claimed staging deleted but empty .todo-staging dir remained in primary workspace — PM removed it" },
   { name: "Todo merged to main", verified: "2026-08-02; 82fd48a (--no-ff merge, 14 files, +2141); main re-run 215/215 tests + firmware build SUCCESS (RAM 15.2% Flash 31.9%); feature/todo branch kept" },
   { name: "Firmware flashed to device (QR+Todo)", verified: "2026-08-02; pio -t upload SUCCESS on COM7 (hash verified, hard reset); serial port live. On-screen app smoke-test pending user confirmation" },
+  { name: "Agenda R1 commits verified", verified: "2026-08-02 by PM; git log confirms eed51b4/38db6bd/e91d4c9/ecf3d30, 228/228 tests, no secrets" },
+  { name: "Agenda R2 commits verified", verified: "2026-08-02 by PM; git log confirms 1170a33/5686f75/1efa36b, 229/229 tests, 0 Critical" },
+  { name: "Agenda flashed to device (batch-1 final)", verified: "2026-08-02; pio -t upload SUCCESS on COM7 (hash verified); split-view launcher live" },
 ];
 
 const gates: { icon: string; name: string; act: string; how: string; ifSkipped: string }[] = [
