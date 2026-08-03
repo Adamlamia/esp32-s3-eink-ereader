@@ -24,7 +24,7 @@ namespace core {
 struct VoiceEntry {
     char     title[VOICE_TITLE_MAX];      // "Meeting notes", truncated from transcription
     int64_t  timestampUtc;                // UTC epoch seconds when recorded
-    char     path[WAV_PATH_MAX];          // "/voice/20260802-142345.wav"
+    char     path[VOICE_PATH_MAX];        // "/voice/20260802-142345.wav"
 };
 
 // --- Queue management ---------------------------------------------------------

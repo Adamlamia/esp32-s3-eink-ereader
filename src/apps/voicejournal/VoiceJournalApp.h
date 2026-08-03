@@ -15,6 +15,7 @@
 #include "display/DisplayManager.h"
 #include "app/WifiSession.h"
 #include "core/IcsParser.h" // for time helpers
+#include <Arduino.h>
 
 namespace apps {
 

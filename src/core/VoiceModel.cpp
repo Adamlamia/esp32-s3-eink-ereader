@@ -61,13 +61,13 @@ int readVoiceQueue(const std::string &in, VoiceEntry *out, int maxOut) {
         while (*p && *p != '\n' && *p != '\r') p++;
         
         // Extract path from this line
-        char path[WAV_PATH_MAX];
+        char path[VOICE_PATH_MAX];
         if (extractPath(lineStart, path, sizeof(path))) {
             // Create entry with empty title and current timestamp
             VoiceEntry entry;
             memset(&entry, 0, sizeof(entry));
-            strncpy(entry.path, path, WAV_PATH_MAX - 1);
-            entry.path[WAV_PATH_MAX - 1] = '\0';
+            strncpy(entry.path, path, VOICE_PATH_MAX - 1);
+            entry.path[VOICE_PATH_MAX - 1] = '\0';
             
             // Set default timestamp (0 means not set)
             entry.timestampUtc = 0;
@@ -105,8 +105,8 @@ bool writeVoiceQueue(const std::string &in, const char *wavPath, int64_t timesta
     // Add new entry at the end
     VoiceEntry newEntry;
     memset(&newEntry, 0, sizeof(newEntry));
-    strncpy(newEntry.path, wavPath, WAV_PATH_MAX - 1);
-    newEntry.path[WAV_PATH_MAX - 1] = '\0';
+    strncpy(newEntry.path, wavPath, VOICE_PATH_MAX - 1);
+    newEntry.path[VOICE_PATH_MAX - 1] = '\0';
     newEntry.timestampUtc = timestampUtc;
     newEntry.title[0] = '\0';
     
@@ -232,7 +232,7 @@ int deserializeJournalCache(const std::string &in, VoiceEntry *entries, int maxO
             const char *pathEnd = strstr(pathStart + 9, "\"");
             if (pathEnd) {
                 size_t len = pathEnd - (pathStart + 9);
-                if (len >= WAV_PATH_MAX) len = WAV_PATH_MAX - 1;
+                if (len >= VOICE_PATH_MAX) len = VOICE_PATH_MAX - 1;
                 memcpy(entry.path, pathStart + 9, len);
                 entry.path[len] = '\0';
             }

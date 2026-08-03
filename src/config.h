@@ -283,6 +283,7 @@
 #define VOICE_WAV_DIR         "/voice"
 #define VOICE_TITLE_MAX         48
 #define VOICE_PATH_MAX          64
+#define WAV_PATH_MAX            VOICE_PATH_MAX
 #define VOICE_QUEUE_MAX_LINES   16
 #define VOICE_STALE_SEC        (6 * 3600)  // auto-sync threshold: 6 h
 #define VOICE_BODY_MAX         8192        // backend response body cap

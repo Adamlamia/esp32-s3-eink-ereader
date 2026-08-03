@@ -10,6 +10,7 @@
 #include "storage/BookStorage.h"
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
+#include <Arduino.h>
 
 namespace apps {
 

@@ -83,7 +83,7 @@ void VoiceJournalApp::onButtonEvent(ButtonEvent event) {
                          tm_info->tm_hour, tm_info->tm_min, tm_info->tm_sec);
                 
                 // Write to queue
-                std::string queueContent;
+                String queueContent;
                 if (_storage.fs().exists(VOICE_QUEUE_FILE)) {
                     File f = _storage.fs().open(VOICE_QUEUE_FILE, "r");
                     if (f) {
@@ -92,18 +92,20 @@ void VoiceJournalApp::onButtonEvent(ButtonEvent event) {
                     }
                 }
                 
-                core::writeVoiceQueue(queueContent, wavPath, now);
+                // Convert String to std::string for core functions
+                std::string queueStr = queueContent.c_str();
+                core::writeVoiceQueue(queueStr, wavPath, now);
                 
                 // Write back to file
                 File f = _storage.fs().open(VOICE_QUEUE_FILE, "w");
                 if (f) {
-                    f.print(queueContent.c_str());
+                    f.print(queueStr.c_str());
                     f.close();
                 }
                 
                 // Update journal cache
                 // Read current entries
-                int n = core::readVoiceQueue(queueContent, _entries, 16);
+                int n = core::readVoiceQueue(queueStr, _entries, 16);
                 std::string json;
                 core::serializeJournalCache(json, _entries, n);
                 
@@ -121,12 +123,14 @@ void VoiceJournalApp::onButtonEvent(ButtonEvent event) {
             // View journal entries
             if (!_isRecording && !_isSyncing) {
                 // Load journal entries
-                std::string journalContent;
+                String journalContent;
                 File f = _storage.fs().open(VOICE_CACHE_FILE, "r");
                 if (f) {
                     journalContent = f.readString();
                     f.close();
-                    _entryCount = core::deserializeJournalCache(journalContent, _entries, 16);
+                    // Convert String to std::string for core functions
+                    std::string journalStr = journalContent.c_str();
+                    _entryCount = core::deserializeJournalCache(journalStr, _entries, 16);
                 }
                 
                 if (_entryCount > 0) {
@@ -235,7 +239,7 @@ void VoiceJournalApp::syncVoiceQueue() {
     WifiSession session(_ctx);
     
     // Read queue file
-    std::string queueContent;
+    String queueContent;
     File f = _storage.fs().open(VOICE_QUEUE_FILE, "r");
     if (f) {
         queueContent = f.readString();
@@ -244,7 +248,7 @@ void VoiceJournalApp::syncVoiceQueue() {
     
     // Parse queue
     core::VoiceEntry entries[16];
-    int n = core::readVoiceQueue(queueContent, entries, 16);
+    int n = core::readVoiceQueue(queueContent.c_str(), entries, 16);
     
     if (n <= 0) {
         _isSyncing = false;
@@ -322,7 +326,7 @@ void VoiceJournalApp::syncVoiceQueue() {
         
         // Update queue
         std::string newQueue;
-        core::writeVoiceQueue(queueContent, "", 0); // This is a placeholder - actual implementation needed
+        core::writeVoiceQueue(queueContent.c_str(), "", 0); // This is a placeholder - actual implementation needed
         
         delete[] wavData;
     }

@@ -51,14 +51,16 @@ bool VoiceSync::syncAll() {
         _storage.fs().remove(entries[i].path);
         
         // Update journal cache
-        std::string journalContent;
+        String journalContent;
         File journalFile = _storage.fs().open(VOICE_CACHE_FILE, "r");
         if (journalFile) {
             journalContent = journalFile.readString();
             journalFile.close();
         }
         
-        int journalN = core::deserializeJournalCache(journalContent, entries, 16);
+        // Convert String to std::string for core functions
+        std::string journalStr = journalContent.c_str();
+        int journalN = core::deserializeJournalCache(journalStr, entries, 16);
         
         // Add new entry
         if (journalN < 16) {
@@ -102,7 +104,11 @@ bool VoiceSync::sendWavToBackend(const char *wavPath, core::VoiceEntry &entry) {
     
     // Create HTTP client
     HTTPClient http;
-    http.begin(VOICE_BACKEND_URL);
+    #ifdef VOICE_BACKEND_URL
+        http.begin(VOICE_BACKEND_URL);
+    #else
+        http.begin("http://localhost:8000/voice");
+    #endif
     
     // Set headers
     http.addHeader("Content-Type", "audio/wav");
