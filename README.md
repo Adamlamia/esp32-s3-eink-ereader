@@ -56,6 +56,44 @@ Wi-Fi and upload.
   zoom; tap cycles images. **GitHub** is a read-only dashboard of your repos
   (open PRs + open issues + last CI status) driven by a PAT in `src/secrets.h`.
   Medium-hold switches section / syncs now; long-hold opens the menu.
+- **Voice Journal** — record voice notes with the INMP441 mic, queue them for
+  nightly batch sync to your PC's self-hosted Whisper + Ollama backend (or cloud).
+  Tap to record, medium-hold to view journal entries, long-hold to return to home.
+  Entries are timestamped and stored on the SD card.
+
+---
+
+## 🎙️ Backend setup
+
+The Voice Journal feature requires a backend server to transcribe your voice recordings.
+
+### Local self-hosted backend
+
+1. Install required packages:
+   ```bash
+   pip install openai-whisper flask
+   ```
+
+2. Run the backend server:
+   ```bash
+   cd tools/backend
+   python voice_server.py
+   ```
+
+3. By default, it listens on `http://localhost:8000/voice`. You can change the host/port with command-line arguments:
+   ```bash
+   python voice_server.py --host 0.0.0.0 --port 8080
+   ```
+
+4. Configure the firmware to use your backend by adding to `src/secrets.h`:
+   ```c
+   #define VOICE_BACKEND_URL "http://192.168.1.100:8000/voice"
+   // #define VOICE_BACKEND_TOKEN "secret-token"  // if authentication is needed
+   ```
+
+### Cloud backend
+
+You can also deploy the backend to a cloud service (AWS, GCP, etc.) and configure the firmware to use the cloud URL.
 
 ---
 

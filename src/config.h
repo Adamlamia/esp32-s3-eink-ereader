@@ -277,6 +277,19 @@
   #define TODO_ICS_LABEL "Tasks"          // default label when secrets.h omits it
 #endif
 
+// --- Voice Journal (batch 2 · Feature 6) ---
+#define VOICE_CACHE_FILE        "/journal.json"
+#define VOICE_QUEUE_FILE       "/voice_queue.txt"
+#define VOICE_WAV_DIR         "/voice"
+#define VOICE_TITLE_MAX         48
+#define VOICE_PATH_MAX          64
+#define VOICE_QUEUE_MAX_LINES   16
+#define VOICE_STALE_SEC        (6 * 3600)  // auto-sync threshold: 6 h
+#define VOICE_BODY_MAX         8192        // backend response body cap
+
+// #define VOICE_BACKEND_URL   "http://192.168.1.100:8000/voice"
+// #define VOICE_BACKEND_TOKEN "secret-token"
+
 // --- Agenda (split-view launcher) -------------------------------------------
 // Agenda (AGD·R1, docs/PROJECT_BRIEF.md §2.3 Feature 4). The launcher's right
 // panel shows TODAY's timeline: a thin merge layer (src/core/AgendaMerge.h)
