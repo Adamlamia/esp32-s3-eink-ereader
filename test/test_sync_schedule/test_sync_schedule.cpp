@@ -113,34 +113,32 @@ void test_one_second_before_hour_not_crossed(void) {
 }
 
 // ===========================================================================
-//  shouldAutoSync — stale backstop
+//  shouldAutoSync — stale backstop removed (batch 3)
 // ===========================================================================
-void test_stale_triggers_without_crossing(void) {
-    // now 08:00, last sync 07:00 (after the boundary -> NOT crossed) but with a
-    // 1 h stale threshold the 1 h-old cache is exactly stale -> due.
-    TEST_ASSERT_TRUE(shouldAutoSync(AUG3_0800, AUG3_0700, HOUR, TZ, 3600));
+// The stale backstop was removed in batch 3. Sync now happens ONLY at the
+// daily sync hour or on manual "Sync now". These tests verify that a stale
+// cache does NOT trigger auto-sync when no daily boundary was crossed.
+void test_stale_cache_no_boundary_crossed_not_due(void) {
+    // now 08:00, last sync 07:00 (after the boundary -> NOT crossed).
+    // Even with a 1 h stale threshold, the stale backstop is removed -> not due.
+    TEST_ASSERT_FALSE(shouldAutoSync(AUG3_0800, AUG3_0700, HOUR, TZ, 3600));
 }
 
-void test_not_stale_below_threshold(void) {
-    // Same instant, 2 h threshold: 1 h-old cache is fresh -> not due.
-    TEST_ASSERT_FALSE(shouldAutoSync(AUG3_0800, AUG3_0700, HOUR, TZ, 7200));
+void test_stale_25_hours_no_boundary_not_due(void) {
+    // Cache is 22 hours old but no daily boundary crossed -> NOT due.
+    // (A 25-hour-old cache MUST cross a boundary since sync-days are 24h.)
+    // now 05:00 Aug 3 (before today's 06:00 boundary).
+    // Last sync 07:00 Aug 2 (AFTER yesterday's 06:00 boundary, so not crossed).
+    // Age = 22 hours, but no boundary crossed -> not due (stale backstop removed).
+    const int64_t AUG2_0700 = AUG2_0600 + 3600;  // 07:00 Aug 2 local
+    TEST_ASSERT_FALSE(shouldAutoSync(AUG3_0500, AUG2_0700, HOUR, TZ, STALE));
 }
 
 void test_stale_nonpositive_disables_backstop(void) {
-    // staleSec <= 0 disables the stale backstop; only the daily boundary can
-    // then trigger. Here nothing is crossed -> not due despite elapsed > 0.
+    // staleSec <= 0 was always "disabled"; now the parameter is unused entirely.
+    // Only the daily boundary can trigger. Here nothing is crossed -> not due.
     TEST_ASSERT_FALSE(shouldAutoSync(AUG3_0800, AUG3_0700, HOUR, TZ, 0));
     TEST_ASSERT_FALSE(shouldAutoSync(AUG3_0800, AUG3_0700, HOUR, TZ, -5));
-}
-
-void test_stale_realistic_twenty_hours(void) {
-    // now 05:00 Aug 3 (before today's boundary). Last sync 06:30 Aug 2 is after
-    // yesterday's boundary (not crossed) but 22.5 h old -> stale (>= 20 h).
-    const int64_t AUG2_0630 = AUG2_0600 + 1800;
-    TEST_ASSERT_TRUE(shouldAutoSync(AUG3_0500, AUG2_0630, HOUR, TZ, STALE));
-    // A 19 h-old cache is not stale and not crossed -> not due.
-    const int64_t AUG2_1000 = AUG2_0600 + 4 * 3600;   // 10:00 Aug 2 (19 h before 05:00)
-    TEST_ASSERT_FALSE(shouldAutoSync(AUG3_0500, AUG2_1000, HOUR, TZ, STALE));
 }
 
 // ===========================================================================
@@ -208,11 +206,10 @@ int main(int argc, char **argv) {
     RUN_TEST(test_exactly_on_hour_with_old_sync_is_due);
     RUN_TEST(test_exactly_on_hour_just_synced_is_not_due);
     RUN_TEST(test_one_second_before_hour_not_crossed);
-    // shouldAutoSync — stale
-    RUN_TEST(test_stale_triggers_without_crossing);
-    RUN_TEST(test_not_stale_below_threshold);
+    // shouldAutoSync — stale backstop removed (batch 3)
+    RUN_TEST(test_stale_cache_no_boundary_crossed_not_due);
+    RUN_TEST(test_stale_25_hours_no_boundary_not_due);
     RUN_TEST(test_stale_nonpositive_disables_backstop);
-    RUN_TEST(test_stale_realistic_twenty_hours);
     // secondsUntilNextSync
     RUN_TEST(test_next_sync_later_today);
     RUN_TEST(test_next_sync_from_local_midnight);
