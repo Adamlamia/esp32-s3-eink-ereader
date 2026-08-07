@@ -55,4 +55,11 @@ inline int wrapSelection(int sel, int delta, int count) {
     return sel;
 }
 
+// Check if a new tap falls within the burst window of the first tap.
+// Returns true if the tap should be accumulated (now - firstTapMs <= windowMs).
+// Used by AppManager for multi-tap navigation acceleration (batch 3).
+inline bool isInBurstWindow(uint32_t nowMs, uint32_t firstTapMs, uint32_t windowMs) {
+    return (nowMs - firstTapMs) <= windowMs;
+}
+
 } // namespace core

@@ -72,6 +72,7 @@
 #define BTN_DEBOUNCE_MS     30    // ignore contact bounce
 #define BTN_PREVHOLD_MS     350   // reading: hold this long (< long-press) = prev page
 #define BTN_LONGPRESS_MS    750   // hold beyond this = long press (open menu / select)
+#define BTN_BURST_WINDOW_MS  350   // multi-tap burst window: additional taps within this many ms of the first accumulate
 
 // --- USB Mass Storage ("USB drive mode") ----------------------------------
 // When enabled, holding BOOT while plugging into a computer exposes the
@@ -213,6 +214,13 @@
 //
 //   #define QR_PAYLOAD_0   "https://example.com/menu"   // URL / free text /
 //   #define QR_LABEL_0     "Cafe menu"                  //   raw EMVCo QRPS...
+//
+// DuitNow QR: scan your physical DuitNow QR with any phone QR scanner app
+// (e.g. Google Lens or "QR & Barcode Scanner" from Play Store). The scanner
+// will show a long raw string starting with "00020101021126..." — that is the
+// EMVCo payload. Paste it as QR_PAYLOAD_n below. The firmware detects it as
+// EMVCo, validates the CRC, and renders it back as a scannable QR on screen.
+//
 //   #define QR_PAYLOAD_1   "00020101021126590014MY.GOV.BNM.RPP...6304ABCD"
 //   #define QR_LABEL_1     "DuitNow"
 //   // ... QR_PAYLOAD_2 / QR_LABEL_2 up to QR_PAYLOAD_7 / QR_LABEL_7
@@ -287,6 +295,16 @@
 #define VOICE_QUEUE_MAX_LINES   16
 #define VOICE_STALE_SEC        (6 * 3600)  // auto-sync threshold: 6 h
 #define VOICE_BODY_MAX         8192        // backend response body cap
+
+// INMP441 I2S microphone pins (wired to the 40-pin expansion header).
+// These are the three "free" GPIOs confirmed by LilyGo-EPD47 utilities.h
+// for the ESP32-S3 variant: GPIO 39 (CS), 45 (MISO), 48 (SCL).
+// The INMP441 L/R pin is tied to GND for left-channel mono.
+#define I2S_MIC_BCLK_PIN    48    // bit clock   → header pin "SCL"
+#define I2S_MIC_WS_PIN      45    // word select → header pin "MISO"
+#define I2S_MIC_DATA_PIN    39    // serial data → header pin "CS"
+#define I2S_MIC_SAMPLE_RATE 16000 // Hz — speech-optimized, low RAM
+#define I2S_MIC_BITS_PER_SAMPLE 32 // INMP441 outputs 24-bit in 32-bit I2S words
 
 // #define VOICE_BACKEND_URL   "http://192.168.1.100:8000/voice"
 // #define VOICE_BACKEND_TOKEN "secret-token"

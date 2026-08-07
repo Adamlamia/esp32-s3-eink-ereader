@@ -49,4 +49,14 @@ public:
     // (e.g. no valid clock yet). Implementations must be cheap and side-effect
     // free: this is queried on the idle->sleep path.
     virtual int32_t sleepWakeupSec() { return -1; }
+
+    // --- Multi-tap support (batch 3) ---
+    // AppManager sets this before calling onButton(Tap) when multiple rapid taps
+    // were accumulated during the burst window. Apps use it to move selection by N.
+    // Default is 1 (single tap). Backward-compatible: apps that ignore it still work.
+    void setTapCount(int n) { _tapCount = n; }
+    int  tapCount() const   { return _tapCount; }
+
+private:
+    int _tapCount = 1;
 };

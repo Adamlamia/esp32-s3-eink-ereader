@@ -64,7 +64,7 @@ void ReaderApp::onButton(ButtonEvent ev) {
             break;
 
         case Screen::Menu:
-            if (ev == ButtonEvent::Tap)           moveMenuSelection(1);
+            if (ev == ButtonEvent::Tap)           moveMenuSelection(tapCount());
             else if (ev == ButtonEvent::LongHold) menuSelect();
             break;
     }

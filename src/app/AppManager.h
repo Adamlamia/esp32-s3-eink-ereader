@@ -73,6 +73,11 @@ private:
     uint32_t       _btnPressMs   = 0;
     bool           _longFired    = false;
 
+    // --- Multi-tap burst state (batch 3) ---
+    bool     _burstActive  = false;   // true while accumulating taps in the burst window
+    uint32_t _burstStartMs = 0;       // millis() of the first tap in the burst
+    int      _burstDelta   = 0;       // accumulated selection delta
+
     // --- System task timers ---
     uint32_t       _lastActivityMs = 0;
     uint32_t       _bootMs         = 0;

@@ -13,6 +13,7 @@ using core::Gesture;
 using core::classifyRelease;
 using core::isLongPress;
 using core::wrapSelection;
+using core::isInBurstWindow;
 
 void setUp(void) {}
 void tearDown(void) {}
@@ -135,6 +136,36 @@ void test_wrap_large_delta(void) {
 }
 
 // ===========================================================================
+//  isInBurstWindow() — multi-tap burst accumulation (batch 3)
+// ===========================================================================
+void test_burst_within_window(void) {
+    // Tap at t=0, another at t=100 with 350ms window -> within burst
+    TEST_ASSERT_TRUE(isInBurstWindow(100, 0, 350));
+    TEST_ASSERT_TRUE(isInBurstWindow(200, 0, 350));
+    TEST_ASSERT_TRUE(isInBurstWindow(350, 0, 350));  // exactly at boundary
+}
+
+void test_burst_outside_window(void) {
+    // Tap at t=0, another at t=400 with 350ms window -> outside burst
+    TEST_ASSERT_FALSE(isInBurstWindow(400, 0, 350));
+    TEST_ASSERT_FALSE(isInBurstWindow(1000, 0, 350));
+}
+
+void test_burst_window_from_first_tap(void) {
+    // Window is measured from the FIRST tap, not the previous one.
+    // First tap at t=1000, second at t=1100, third at t=1300 -> all within 350ms of first
+    TEST_ASSERT_TRUE(isInBurstWindow(1100, 1000, 350));
+    TEST_ASSERT_TRUE(isInBurstWindow(1300, 1000, 350));
+    TEST_ASSERT_FALSE(isInBurstWindow(1400, 1000, 350));  // 400ms after first -> outside
+}
+
+void test_burst_zero_window(void) {
+    // Zero window: only the exact same instant is "within"
+    TEST_ASSERT_TRUE(isInBurstWindow(100, 100, 0));
+    TEST_ASSERT_FALSE(isInBurstWindow(101, 100, 0));
+}
+
+// ===========================================================================
 //  Runner
 // ===========================================================================
 int main(int argc, char **argv) {
@@ -170,6 +201,12 @@ int main(int argc, char **argv) {
     RUN_TEST(test_wrap_single_item);
     RUN_TEST(test_wrap_zero_count_guards);
     RUN_TEST(test_wrap_large_delta);
+
+    // isInBurstWindow (batch 3)
+    RUN_TEST(test_burst_within_window);
+    RUN_TEST(test_burst_outside_window);
+    RUN_TEST(test_burst_window_from_first_tap);
+    RUN_TEST(test_burst_zero_window);
 
     return UNITY_END();
 }
