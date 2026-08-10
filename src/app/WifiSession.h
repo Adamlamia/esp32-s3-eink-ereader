@@ -34,6 +34,8 @@
 #include <Arduino.h>             // FreeRTOS (semaphore/task) + snprintf; the
                                  // portal guard itself stays inline at callers
 
+class WiFiClientSecure;          // forward declaration for TLS helper
+
 // --- Session tuning (one envelope, shared by calendar + weather) ------------
 static const int     WIFI_SESSION_WIFI_TRIES  = 30;        // x 500 ms -> <= 15 s join
 static const int     WIFI_SESSION_NTP_TRIES   = 30;        // x 500 ms -> <= 15 s NTP
@@ -64,6 +66,15 @@ struct WifiOffGuard { ~WifiOffGuard(); };
 #if defined(WIFI_STA_SSID) && defined(WIFI_STA_PASS)
 bool wifiSessionStaNtp(int64_t &nowUtc, char *msg, size_t msgLen, const char *tag);
 #endif
+
+// --- TLS CA certificate helper (P0-3) --------------------------------------
+// Configure a WiFiClientSecure with proper CA certificate validation.
+// Returns true if a CA cert was found for the host and applied.
+// Returns false if no cert available (caller should decide whether to proceed).
+// When false is returned, the client is left unconfigured (caller may fall back
+// to setInsecure() with a serial warning, or abort).
+// (Definition in WifiSession.cpp.)
+bool wifiSessionApplyCa(WiFiClientSecure &client, const char *host, const char *tag);
 
 // --- Dedicated sync-task trampoline -----------------------------------------
 // Run a blocking session body on the dedicated high-stack (24 KB) FreeRTOS task

@@ -110,12 +110,12 @@ CalendarSyncResult CalendarSync::runInternal() {
     for (int fi = 0; fi < feedCount; fi++) {
         bool feedOk = false;
         WiFiClientSecure client;
-        // SECURITY NOTE: setInsecure() skips certificate validation; the
-        // secret ICS URL itself (with its embedded private API key) is the
-        // credential, so it lives only in git-ignored src/secrets.h.
-        // Proper CA validation is deferred to a shared hardening round that
-        // fixes BOTH apps together: TODO(TLS).
-        client.setInsecure();
+        // P0-3: TLS CA validation. Apply the CA cert for calendar.google.com;
+        // if no cert is available, fall back to setInsecure() with a warning.
+        if (!wifiSessionApplyCa(client, "calendar.google.com", "CalSync")) {
+            client.setInsecure();  // fallback with warning
+            Serial.println("[CalSync] WARNING: TLS without CA validation (no cert for host)");
+        }
         HTTPClient http;
         http.setConnectTimeout(SYNC_HTTP_CONNECT_MS);
         http.setTimeout(SYNC_HTTP_TIMEOUT_MS);

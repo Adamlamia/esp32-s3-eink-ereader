@@ -53,7 +53,7 @@ void ReaderApp::onExit() {
 void ReaderApp::onButton(ButtonEvent ev) {
     switch (_screen) {
         case Screen::Library:
-            if (ev == ButtonEvent::Tap)           moveLibrarySelection(1);
+            if (ev == ButtonEvent::Tap)           moveLibrarySelection(tapCount());
             else if (ev == ButtonEvent::LongHold) librarySelect();
             break;
 

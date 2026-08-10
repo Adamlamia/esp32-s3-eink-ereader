@@ -47,11 +47,16 @@ static const int GH_URL_MAX = 192;
 //  Returns the HTTP code (0 == begin() failed). On HTTP 200 with a non-empty
 //  body <= GITHUB_BODY_MAX, fills `body`; otherwise `body` is left untouched.
 //  The PAT is sent as a bearer token; Accept + User-Agent are the headers
-//  GitHub's REST v3 expects (User-Agent is mandatory). setInsecure() matches
-//  the other syncs: TODO(TLS) defers proper CA validation to a shared round.
+//  GitHub's REST v3 expects (User-Agent is mandatory). P0-3: TLS CA validation
+//  applied via wifiSessionApplyCa() for api.github.com.
 static int githubGet(const char *url, const char *pat, String &body) {
     WiFiClientSecure client;
-    client.setInsecure();   // TODO(TLS): shared CA-validation hardening round
+    // P0-3: TLS CA validation. Apply the CA cert for api.github.com;
+    // if no cert is available, fall back to setInsecure() with a warning.
+    if (!wifiSessionApplyCa(client, "api.github.com", "GhSync")) {
+        client.setInsecure();  // fallback with warning
+        Serial.println("[GhSync] WARNING: TLS without CA validation (no cert for host)");
+    }
     HTTPClient http;
     http.setConnectTimeout(SYNC_HTTP_CONNECT_MS);
     http.setTimeout(SYNC_HTTP_TIMEOUT_MS);

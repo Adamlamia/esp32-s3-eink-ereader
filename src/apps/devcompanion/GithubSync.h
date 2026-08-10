@@ -41,10 +41,9 @@
 //  UTC epoch seconds once NTP has fixed the clock; fetchedUtc / lastSyncUtc use
 //  that value DIRECTLY. The NTP-validity floor is the shared CAL_CLOCK_MIN_EPOCH.
 //
-//  SECURITY: WiFiClientSecure::setInsecure() skips certificate validation,
-//  matching CalendarSync/WeatherSync. Here the bearer PAT IS sensitive, so this
-//  is the one place the shared TLS hardening matters most; it is deferred to the
-//  same round that fixes the other apps: TODO(TLS).
+//  SECURITY: P0-3 TLS hardening applied. WiFiClientSecure now uses proper CA
+//  certificate validation via wifiSessionApplyCa() for api.github.com. The
+//  bearer PAT is the most sensitive payload, so CA validation matters here.
 // ===========================================================================
 #include <stdint.h>
 #include <stddef.h>

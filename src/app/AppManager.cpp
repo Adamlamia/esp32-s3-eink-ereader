@@ -73,6 +73,16 @@ void AppManager::loop() {
     // Let the active app do periodic work (network polling, timers, etc.).
     if (_state == State::AppActive && _activeApp) {
         _activeApp->onLoop(millis());
+    } else if (_state == State::Launcher) {
+        // Background tick: let apps with scheduled work run even from the launcher.
+        // Rate-limited to once per second to avoid excessive CPU use.
+        uint32_t now = millis();
+        if (now - _lastLauncherTickMs >= 1000UL) {
+            _lastLauncherTickMs = now;
+            for (int i = 0; i < _appCount; i++) {
+                _apps[i]->onLoop(now);
+            }
+        }
     }
 
     systemTasks(millis());
