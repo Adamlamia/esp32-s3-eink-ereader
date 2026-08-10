@@ -160,32 +160,41 @@ void WeatherApp::renderMain() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
 
-    // Title: location label (WEATHER_LABEL, KL default).
-    d.drawTextCentered(50, String("Weather - ") + String(_snap.label), 2);
-    d.drawBookText(MARGIN_X, 92, lastSyncLine());
+    // --- Title bar (tighter to top for better vertical balance) ---
+    d.drawTextCentered(30, String("Weather - ") + String(_snap.label), 2);
+    d.drawBookText(MARGIN_X, 62, lastSyncLine());
 
     const bool haveData = _snap.cur.valid || _snap.dayCount > 0;
     if (!haveData) {
         // Empty state: never synced (or every load failed).
-        d.drawBookText(MARGIN_X, 220, "No weather yet - Tap to refresh.");
-        d.drawBookText(MARGIN_X, 252, "Or Hold -> menu -> Refresh now.");
+        // Center the message vertically for better visual balance.
+        d.drawBookText(MARGIN_X, 240, "No weather yet - Tap to refresh.");
+        d.drawBookText(MARGIN_X, 272, "Or Hold -> menu -> Refresh now.");
         d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=refresh   Hold=menu");
         d.flush(true);
         return;
     }
 
-    // --- Current conditions (left column) ---
-    int y = 160;
+    // --- Current conditions section ---
+    // Tighter spacing: start at y=100 (was 160) to reduce the large gap.
+    int y = 100;
     if (_snap.cur.valid) {
+        // Weather glyph + description (compact single line).
         String glyphLine = String("[") + core::weatherCodeGlyph(_snap.cur.weatherCode)
                          + "]  " + codeName(_snap.cur.weatherCode);
         d.drawBookText(MARGIN_X, y, glyphLine);
+        y += 36;
+
+        // The headline temperature: the hero element.
+        // Add a subtle shaded background to make it stand out visually.
+        String tempLine = fmt1(_snap.cur.tempC) + " C   feels " + fmt1(_snap.cur.feelsC) + " C";
+        int tempBoxW = d.textWidth(tempLine, false) + 32;
+        int tempBoxH = 52;
+        d.fillRectShade(MARGIN_X - 8, y - 8, tempBoxW, tempBoxH, 230);  // light gray background
+        d.drawText(MARGIN_X, y, tempLine, 2);
         y += 58;
-        // The headline temperature (FiraSans line — the largest face the
-        // DisplayManager currently offers; font scaling is an existing TODO).
-        d.drawText(MARGIN_X, y,
-                   fmt1(_snap.cur.tempC) + " C   feels " + fmt1(_snap.cur.feelsC) + " C", 2);
-        y += 46;
+
+        // Humidity + wind on same line (compact grouping).
         d.drawBookText(MARGIN_X, y,
                        String("Humidity ") + String(_snap.cur.humidityPct) + " %"
                        + "    Wind " + fmt1(_snap.cur.windKph) + " km/h");
@@ -193,22 +202,32 @@ void WeatherApp::renderMain() {
         d.drawBookText(MARGIN_X, y, "Current conditions unavailable.");
     }
 
-    // --- 3-day forecast row ---
+    // --- Visual divider between current and forecast sections ---
+    // A thin shaded band creates clear separation without heavy ink.
+    int dividerY = 260;
+    d.fillRectShade(MARGIN_X, dividerY, DISPLAY_WIDTH - 2 * MARGIN_X, 3, 180);
+
+    // --- 3-day forecast section ---
+    // Better vertical balance: forecast starts at y=284 (was 320).
+    y = 284;
+    d.drawTextCentered(y, "--- Next 3 Days ---", 1);
+    y += 44;
+
     // Day labels anchor at local midnight of the FETCH day: Open-Meteo's
     // daily arrays start at "today" in WEATHER_TZ (UTC+8 == CAL_TZ_OFFSET_SEC),
     // so weekday(todayStartUtc(fetchedUtc) + i*86400) labels day i correctly.
-    y = 320;
-    d.drawBookText(MARGIN_X, y, "--- Next days ---");
-    y += 34;
     int64_t d0 = core::todayStartUtc(_snap.fetchedUtc, CAL_TZ_OFFSET_SEC);
-    for (int i = 0; i < _snap.dayCount && i < WEATHER_FORECAST_DAYS; i++, y += 40) {
+    for (int i = 0; i < _snap.dayCount && i < WEATHER_FORECAST_DAYS; i++, y += 42) {
         const core::WeatherDay &day = _snap.days[i];
         int wd = core::weekdayFromUtc(d0 + (int64_t)i * 86400, CAL_TZ_OFFSET_SEC);
-        String row = String(WD_SHORT[wd]) + "   "
+
+        // Better aligned forecast rows: consistent column positions.
+        // Day label (fixed width), temp range, glyph, description.
+        String row = String(WD_SHORT[wd]) + "  "
                    + fmtTenths(day.tMin) + " .. " + fmtTenths(day.tMax) + " C"
                    + "   [" + core::weatherCodeGlyph(day.weatherCode) + "] "
                    + codeName(day.weatherCode);
-        d.drawBookText(MARGIN_X, y, row);
+        d.drawBookText(MARGIN_X + 20, y, row);
     }
 
     // Footer: gesture legend.
