@@ -2,52 +2,98 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
   <title>E-Reader &middot; Library</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <header>
     <h1>&#128218; E-Reader</h1>
-    <span id="storage" class="badge">storage: &hellip;</span>
+    <span id="storage" class="badge" aria-live="polite">storage: &hellip;</span>
   </header>
 
   <main>
-    <section class="card">
-      <h2>Upload a book</h2>
+    <!-- Upload Card -->
+    <section class="card" aria-labelledby="upload-heading">
+      <h2 id="upload-heading">Upload a book</h2>
       <p class="hint">Drag &amp; drop or pick files &mdash; they appear in your
         library on the device.</p>
 
-      <div id="drop" class="dropzone">
-        <input id="file" type="file" accept=".txt,text/plain" multiple hidden />
-        <p>Drop <strong>.txt</strong> files here or <button id="pick" class="link">browse</button></p>
+      <div id="drop" class="dropzone" role="button" tabindex="0"
+           aria-label="Drop zone for book files. Click or drag files here to upload.">
+        <div class="dropzone-icon" aria-hidden="true">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <p>Drop <strong>.txt</strong> files here or <button id="pick" class="link" type="button">browse</button></p>
+        <input id="file" type="file" accept=".txt,text/plain" multiple hidden aria-label="Select book files to upload" />
       </div>
 
-      <div id="progressWrap" class="progress" hidden>
+      <div id="progressWrap" class="progress" hidden role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
         <div id="progressBar"></div>
       </div>
-      <p id="status" class="status"></p>
+      <p id="status" class="status" aria-live="polite"></p>
     </section>
 
-    <section class="card">
-      <h2>Library <span id="count" class="count"></span></h2>
-      <ul id="books" class="books"><li class="empty">Loading&hellip;</li></ul>
+    <!-- Library Card -->
+    <section class="card" aria-labelledby="library-heading">
+      <h2 id="library-heading">Library <span id="count" class="count"></span></h2>
+      <ul id="books" class="books" role="list" aria-label="Book list">
+        <li class="empty" role="listitem">
+          <div class="empty-state">
+            <div class="empty-icon" aria-hidden="true">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+            </div>
+            <p>Loading&hellip;</p>
+          </div>
+        </li>
+      </ul>
     </section>
 
-    <section class="card">
-      <h2>How to add a book</h2>
-      <ol class="steps">
-        <li>Join the Wi-Fi network <code>EReader-Setup</code> (password <code>read1234</code>).</li>
-        <li>Open <code>http://ereader.local</code> (or <code>http://192.168.4.1</code>).</li>
-        <li>Drag a file into the box above, or click <em>browse</em>.</li>
-        <li>On the device, hold the button to open the menu, then choose Library and pick your book.</li>
-      </ol>
-      <p class="hint"><strong>Supported:</strong> plain-text <code>.txt</code> files saved as UTF-8
-        (books, notes, articles, scripts).<br />
-        <strong>Not supported:</strong> PDF, EPUB, MOBI, DOCX &mdash; convert them to <code>.txt</code>
-        first (e.g. export as TXT from Calibre).</p>
+    <!-- Help Card (Collapsible) -->
+    <section class="card" aria-labelledby="help-heading">
+      <details>
+        <summary class="help-toggle" id="help-heading">
+          <span>How to add a book</span>
+          <svg class="chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </summary>
+        <ol class="steps">
+          <li>Join the Wi-Fi network <code>EReader-Setup</code> (password <code>read1234</code>).</li>
+          <li>Open <code>http://ereader.local</code> (or <code>http://192.168.4.1</code>).</li>
+          <li>Drag a file into the box above, or click <em>browse</em>.</li>
+          <li>On the device, hold the button to open the menu, then choose Library and pick your book.</li>
+        </ol>
+        <p class="hint"><strong>Supported:</strong> plain-text <code>.txt</code> files saved as UTF-8
+          (books, notes, articles, scripts).<br />
+          <strong>Not supported:</strong> PDF, EPUB, MOBI, DOCX &mdash; convert them to <code>.txt</code>
+          first (e.g. export as TXT from Calibre).</p>
+      </details>
     </section>
   </main>
+
+  <!-- Toast Container -->
+  <div id="toasts" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h3 id="modal-title">Delete book?</h3>
+      <p id="modal-body" class="modal-body"></p>
+      <div class="modal-actions">
+        <button id="modalCancel" class="btn btn-secondary" type="button">Cancel</button>
+        <button id="modalConfirm" class="btn btn-danger" type="button">Delete</button>
+      </div>
+    </div>
+  </div>
 
   <footer>
     <span>ESP32-S3 E-Ink E-Reader</span>
