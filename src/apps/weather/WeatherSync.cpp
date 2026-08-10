@@ -83,12 +83,12 @@ WeatherSyncResult WeatherSync::runInternal() {
     bool fetched = false;
     {
         WiFiClientSecure client;
-        // SECURITY NOTE: setInsecure() skips certificate validation, matching
-        // CalendarSync. Open-Meteo needs no credential (free, no API key); the
-        // payload is public forecast data, so the risk is a tampered forecast,
-        // not a leaked secret. Proper CA validation is deferred to a shared
-        // hardening round that fixes BOTH apps together: TODO(TLS).
-        client.setInsecure();
+        // P0-3: TLS CA validation. Apply the CA cert for api.open-meteo.com;
+        // if no cert is available, fall back to setInsecure() with a warning.
+        if (!wifiSessionApplyCa(client, "api.open-meteo.com", "WthSync")) {
+            client.setInsecure();  // fallback with warning
+            Serial.println("[WthSync] WARNING: TLS without CA validation (no cert for host)");
+        }
         HTTPClient http;
         http.setConnectTimeout(SYNC_HTTP_CONNECT_MS);
         http.setTimeout(SYNC_HTTP_TIMEOUT_MS);

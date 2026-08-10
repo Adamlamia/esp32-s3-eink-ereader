@@ -15,9 +15,11 @@
 // ===========================================================================
 #include "app/WifiSession.h"
 #include "core/CalendarEvent.h"   // CAL_CLOCK_MIN_EPOCH + CAL_TZ_OFFSET_SEC (config.h)
+#include "core/CaCerts.h"         // CA certificate lookup (P0-3)
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <time.h>
 
 // --- RAII Wi-Fi-off guard ---------------------------------------------------
@@ -58,3 +60,19 @@ bool wifiSessionStaNtp(int64_t &nowUtc, char *msg, size_t msgLen, const char *ta
     return true;
 }
 #endif // WIFI_STA_SSID && WIFI_STA_PASS
+
+// --- TLS CA certificate helper (P0-3) --------------------------------------
+// Configure a WiFiClientSecure with proper CA certificate validation.
+// Returns true if a CA cert was found for the host and applied.
+// Returns false if no cert available (caller should decide whether to proceed).
+bool wifiSessionApplyCa(WiFiClientSecure &client, const char *host, const char *tag) {
+    const char *ca = core::caCertForHost(host);
+    if (ca) {
+        client.setCACert(ca);
+        Serial.printf("[%s] TLS: CA cert applied for %s\n", tag ? tag : "Sync", host);
+        return true;
+    }
+    Serial.printf("[%s] TLS: no CA cert for %s — caller must decide\n",
+                  tag ? tag : "Sync", host);
+    return false;
+}
