@@ -22,11 +22,11 @@ const C = {
 
 // ── Status header ────────────────────────────────────────────────────────────
 const meta = {
-  status: "BATCH 3 COMPLETE — feature/batch3 6f2a8b2 · Multi-tap nav + Calendar sync fix + QR docs · 260 tests",
+  status: "MAIN 275a778 · Batch 3 merged · Backlog prioritised · 260 tests",
   updated: "2026-08-07",
-  round: "BATCH 3 DONE — multi-tap nav, calendar scheduled-only sync, DuitNow QR docs",
-  nextHumanAction: "Review changes, flash to device, merge to main when satisfied",
-  branch: "feature/batch3 (6f2a8b2) · based on main 50daa82",
+  round: "Backlog triage — next up: Library multi-tap (P0) + Launcher sync gap (P0)",
+  nextHumanAction: "Say 'next' to start P0 tasks, or reprioritise",
+  branch: "main (275a778)",
 };
 
 // ── Locked tech stack (so decisions aren't re-litigated) ─────────────────────
@@ -56,10 +56,10 @@ const milestones: { id: string; name: string; progress: number; status: string; 
   { id: "M8", name: "Calendar review & hardening", progress: 100, status: "done", rounds: "CAL·R4", done: "Zero Critical findings, feature ready to merge to main" },
   { id: "M9", name: "Weather feature (batch 1 of 4)", progress: 95, status: "done", rounds: "WTH·R1–R2", done: "Open-Meteo sync + cache + UI on device, 0 Critical findings, merged to main, live-verified" },
   { id: "M10", name: "QR Toolkit (batch 2 of 4)", progress: 100, status: "done", rounds: "QR·R1–R2", done: "WiFi/DuitNow/URL QRs, tap cycles, EMVCo seam tested" },
-  { id: "M11", name: "Todo (batch 3 of 4) — DEFERRED", progress: 95, status: "blocked", rounds: "TODO·R1–R2", done: "Built+tested+merged, but DISABLED in launcher (TODO(TODO-BACKEND)): Google Tasks has no ICS feed; revisit backend" },
+  { id: "M11", name: "Todo (batch 3 of 4) — P2 DEFERRED", progress: 95, status: "blocked", rounds: "TODO·R1–R2", done: "Built+tested+merged, DISABLED in launcher (P2): Google Tasks has no ICS feed; revisit backend decision" },
   { id: "M12", name: "Agenda (batch 4 of 4 · FULL PAUSE after)", progress: 100, status: "done", rounds: "AGD·R1–R2", done: "Split-view launcher: left=apps, right=today's timeline (calendar-only, clean Todo slot), next-item highlighted; 0 Critical; flashed to device" },
   { id: "M13", name: "Dev Companion (batch 2 · Feature 5)", progress: 100, status: "done", rounds: "DEV·R1–R2", done: "Reference viewer (4-bpp blit from SD) + GitHub dashboard (PRs/issues/CI); 2 Critical fixed; 257 tests; flashed" },
-  { id: "M14", name: "Voice Journal (batch 2 · Feature 6)", progress: 100, status: "done", rounds: "VJ·R1", done: "I2S WAV recording → SD queue → nightly sync to swappable backend; device-side built; backend stub provided" },
+  { id: "M14", name: "Voice Journal (batch 2 · Feature 6) — P5 HOLD", progress: 100, status: "done", rounds: "VJ·R1", done: "Device-side code merged (batch 2); backend + full feature on hold (P5) until further notice" },
   { id: "M15", name: "Batch 3 — Multi-tap nav + Calendar sync + QR docs", progress: 100, status: "done", rounds: "B3·R1", done: "Multi-tap burst window for menus/launcher, calendar sync scheduled-only, DuitNow scan docs; 260 tests" },
 ];
 
@@ -214,12 +214,15 @@ const decisions: { decision: string; status: string; note: string }[] = [
   { decision: "Todo gestures: MediumHold=toggle done, LongHold=menu", status: "Resolved", note: "TODO·R1: LongHold-as-menu is the universal house convention; MediumHold is the secondary-action band; Tap moves highlight (2026-08-02)" },
   { decision: "/todo.json stores tasks + done-set + sync stamp", status: "Resolved", note: "TODO·R1: UI must render across reboots and Agenda will read this cache; done-only seam still delivered + unit-tested independently (2026-08-02)" },
   { decision: "deserializeTodoCache skips phantom task elements", status: "Resolved", note: "TODO·R2 T1: corrupt/adversarial tasks[] entries (non-object / field-less) no longer materialise (untitled) rows; defence-in-depth pinned by regression test (2026-08-02)" },
-  { decision: "Todo DEFERRED & disabled in launcher", status: "Deferred", note: "2026-08-02 user decision: Google Tasks (product) has NO ICS/CalDAV feed (OAuth2 API only); the all-day-calendar source only suits date-bounded tasks, owner's are mostly undated. Code+31 tests kept merged; commented out of AppRegistry (TODO(TODO-BACKEND)); reflash removed it from launcher. Revisit Option C (ICS bridge) vs Option B (OAuth2) (2026-08-02)" },
+  { decision: "Todo DEFERRED & disabled in launcher", status: "Deferred (P2)", note: "2026-08-02 user decision: Google Tasks (product) has NO ICS/CalDAV feed (OAuth2 API only); the all-day-calendar source only suits date-bounded tasks, owner's are mostly undated. Code+31 tests kept merged; commented out of AppRegistry (TODO(TODO-BACKEND)); reflash removed it from launcher. Revisit Option C (ICS bridge) vs Option B (OAuth2) (2026-08-02)" },
+  { decision: "DuitNow QR re-encoded payload rejected by some scanners", status: "Deferred (P2)", note: "2026-08-07: EMVCo CRC valid but re-encoded QR not accepted by all scanners. Needs investigation — tag ordering or field normalisation issue. Functional for display on device" },
+  { decision: "Calendar MONTHLY/YEARLY RRULE recurrence", status: "Closed", note: "2026-08-07 user decision: will NOT pursue MONTHLY/YEARLY recurrence. Only DAILY/WEEKLY+BYDAY supported. 7 TODO(R2) markers remain as deferred ledger but will not be actioned" },
+  { decision: "Voice Journal on hold", status: "Deferred (P5)", note: "2026-08-07 user decision: device-side code merged (batch 2) but backend + full feature on hold until further notice" },
 ];
 
 // ── Risks & mitigations ──────────────────────────────────────────────────────
 const risks: { risk: string; impact: string; mitigation: string }[] = [
-  { risk: "ICS recurrence complexity", impact: "Missed events if unsupported RRULE", mitigation: "CAL·R1 supports DAILY/WEEKLY+BYDAY; others skipped with TODO(R2) marker" },
+  { risk: "ICS recurrence complexity", impact: "Missed events if unsupported RRULE", mitigation: "CLOSED 2026-08-07: user will NOT pursue MONTHLY/YEARLY. Only DAILY/WEEKLY+BYDAY supported; 7 TODO(R2) remain as deferred ledger" },
   { risk: "ESP32 has no battery-backed RTC", impact: "Time lost on full power-off", mitigation: "NTP re-sync on boot/WiFi; light sleep keeps timer alive" },
   { risk: "ICS secret URL is a credential", impact: "Leak = calendar readable", mitigation: "Lives in git-ignored src/secrets.h only; never committed" },
   { risk: "E-ink ghosting on launcher", impact: "Visual quality", mitigation: "drawLauncher uses flush(true) full refresh (mitigated FW·R2)" },
@@ -228,6 +231,17 @@ const risks: { risk: string; impact: string; mitigation: string }[] = [
   { risk: "Weather HTTPS uses setInsecure() (no CA validation)", impact: "MITM possible on open Wi-Fi", mitigation: "OPEN TODO(WTH-R2): inherit calendar's pattern, fix both apps together in Review & Fix" },
   { risk: "Weather UI layout untested on real panel", impact: "Coordinates may need tuning", mitigation: "RESOLVED: user confirmed layout works on device; UI/UX enhancement deferred to a future round" },
   { risk: "Live weather fetch unverified on device", impact: "Network path proven only by calendar parity", mitigation: "RESOLVED: user live-verified 2026-08-01 (3-day forecast + refresh confirmed)" },
+];
+
+// ── Prioritised backlog ───────────────────────────────────────────────────────
+const backlog: { priority: string; item: string; status: string; note: string }[] = [
+  { priority: "P0", item: "Library browser multi-tap", status: "Open", note: "ReaderApp moveLibrarySelection(1) still single-step; extend to use tapCount() like menus" },
+  { priority: "P0", item: "Launcher background sync gap", status: "Open", note: "Timer wake from launcher doesn't trigger app sync (no active app onLoop); needs background-tick hook in AppManager" },
+  { priority: "P0", item: "TLS CA validation (shared hardening)", status: "Open", note: "6 TODO(TLS) across Calendar, Weather, Todo, DevCompanion — all use setInsecure(); single shared round fixes all HTTPS" },
+  { priority: "P1", item: "Weather UI/UX enhancement", status: "Open", note: "Functional but needs visual polish pass; user confirmed layout works, wants dedicated pass" },
+  { priority: "P2", item: "Todo backend decision", status: "Deferred", note: "Google Tasks has no ICS feed; decide Option C (ICS bridge) vs Option B (OAuth2); code+31 tests kept" },
+  { priority: "P2", item: "DuitNow QR scanner compatibility", status: "Deferred", note: "Re-encoded EMVCo payload rejected by some scanners; investigate tag ordering / normalisation" },
+  { priority: "P5", item: "Voice Journal backend + full feature", status: "On hold", note: "Device-side code merged (batch 2); backend (Whisper+Ollama / cloud) and integration on hold until further notice" },
 ];
 
 // ── Definition of done (release-level checklist from the source doc) ─────────
@@ -506,6 +520,26 @@ export default function ProgressDashboard() {
                 <Td>{r.risk}</Td>
                 <Td color={C.blocked}>{r.impact}</Td>
                 <Td color={C.dim}>{r.mitigation}</Td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Section>
+
+      <Section title="Prioritised backlog">
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <thead>
+            <tr style={{ color: C.dim, textAlign: "left" }}>
+              <Th w={40}>Pri</Th><Th>Item</Th><Th w={80}>Status</Th><Th>Note</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {backlog.map((b, i) => (
+              <tr key={i} style={{ borderTop: `1px solid ${C.border}` }}>
+                <Td color={b.priority === "P0" ? C.blocked : b.priority === "P1" ? C.yellow : b.priority === "P2" ? C.accent : C.dim} bold>{b.priority}</Td>
+                <Td>{b.item}</Td>
+                <Td color={b.status === "Open" ? C.active : C.dim}>{b.status}</Td>
+                <Td color={C.dim}>{b.note}</Td>
               </tr>
             ))}
           </tbody>
