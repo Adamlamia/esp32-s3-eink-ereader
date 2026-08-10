@@ -22,11 +22,11 @@ const C = {
 
 // ── Status header ────────────────────────────────────────────────────────────
 const meta = {
-  status: "BATCH 2 COMPLETE — main 50daa82 · Dev Companion + Voice Journal DONE · 257 tests",
-  updated: "2026-08-02",
-  round: "FULL PAUSE (PROJECT_BRIEF §2.2) — batch 2 done; next: batch 3 (not defined yet)",
-  nextHumanAction: "Say 'start batch 3' when ready, or revisit Todo backend / on-device validation",
-  branch: "main (50daa82) · feature/todo + feature/qr kept",
+  status: "BATCH 3 COMPLETE — feature/batch3 6f2a8b2 · Multi-tap nav + Calendar sync fix + QR docs · 260 tests",
+  updated: "2026-08-07",
+  round: "BATCH 3 DONE — multi-tap nav, calendar scheduled-only sync, DuitNow QR docs",
+  nextHumanAction: "Review changes, flash to device, merge to main when satisfied",
+  branch: "feature/batch3 (6f2a8b2) · based on main 50daa82",
 };
 
 // ── Locked tech stack (so decisions aren't re-litigated) ─────────────────────
@@ -60,6 +60,7 @@ const milestones: { id: string; name: string; progress: number; status: string; 
   { id: "M12", name: "Agenda (batch 4 of 4 · FULL PAUSE after)", progress: 100, status: "done", rounds: "AGD·R1–R2", done: "Split-view launcher: left=apps, right=today's timeline (calendar-only, clean Todo slot), next-item highlighted; 0 Critical; flashed to device" },
   { id: "M13", name: "Dev Companion (batch 2 · Feature 5)", progress: 100, status: "done", rounds: "DEV·R1–R2", done: "Reference viewer (4-bpp blit from SD) + GitHub dashboard (PRs/issues/CI); 2 Critical fixed; 257 tests; flashed" },
   { id: "M14", name: "Voice Journal (batch 2 · Feature 6)", progress: 100, status: "done", rounds: "VJ·R1", done: "I2S WAV recording → SD queue → nightly sync to swappable backend; device-side built; backend stub provided" },
+  { id: "M15", name: "Batch 3 — Multi-tap nav + Calendar sync + QR docs", progress: 100, status: "done", rounds: "B3·R1", done: "Multi-tap burst window for menus/launcher, calendar sync scheduled-only, DuitNow scan docs; 260 tests" },
 ];
 
 // ── Prompt chain — ACTIVE track: Batch-1 features (Weather → QR → Todo → Agenda) ─
@@ -72,6 +73,11 @@ const chain: { r: string; pattern: string; scope: string; status: StepStatus; no
   { r: "TODO·R2", pattern: "Review & Fix", scope: "CSPMO review of feature/todo, resolve findings, final verification", status: "done", note: "3 commits (7dc6d48/06f32c0/67bc292) · 215 tests (+1 regr) · 0 Critical · T1 phantom-task fix · shared-seam UID change verified additive · PM-verified" },
   { r: "AGD·R1", pattern: "Implementation", scope: "core/AgendaMerge.h seam + AppManager split-view launcher (calendar-only, clean Todo slot) + native tests + config.h AGENDA_* + README", status: "done", note: "4 commits (eed51b4/38db6bd/e91d4c9/ecf3d30) · 228 tests (+13) · RAM 19.7% Flash 31.7% · PM-verified" },
   { r: "AGD·R2", pattern: "Review & Fix", scope: "CSPMO review of Agenda feature, observability fix, capacity regression pin", status: "done", note: "3 commits (1170a33/5686f75/1efa36b) · 229 tests (+1 regr) · 0 Critical 0 Safety · A1 serial log + A5 capacity pin · PM-verified" },
+];
+
+// ── Batch 3 track: quality-of-life improvements ──────────────────────────
+const chainBatch3: { r: string; pattern: string; scope: string; status: StepStatus; note: string }[] = [
+  { r: "B3·R1", pattern: "Implementation", scope: "Multi-tap burst nav (menus/launcher) + calendar scheduled-only sync + DuitNow QR docs", status: "done", note: "2 commits (2e5db1c/6f2a8b2) · 260 tests (+31) · RAM 19.8% Flash 32.6% · burst window 350ms · all app menus updated · PM-verified" },
 ];
 
 // ── Secondary track: CalendarApp (COMPLETE, merged to main c75e50d) ──────────
@@ -147,16 +153,20 @@ const verificationTimeline: { when: string; round: string; what: string; result:
   { when: "2026-08-02", round: "AGD·R2", what: "CSPMO review", result: "SUCCESS — 0 Critical, 0 Safety; A1 Observability fixed (serial log), A5 capacity pin added" },
   { when: "2026-08-02", round: "AGD·FLASH", what: "pio run -e lilygo_t5_47_s3 -t upload (COM7)", result: "SUCCESS — hash verified, hard reset; Agenda split-view launcher on device" },
   { when: "2026-08-01", round: "WTH·R2", what: "marker census", result: "TODO(WTH-R2)=0 · TODO(TLS)=2 · TODO(R2)=8 unchanged" },
+  { when: "2026-08-07", round: "B3·R1", what: "pio test -e native -f test_app_framework (PM re-run)", result: "SUCCESS — 28/28 PASSED (24 existing + 4 new burst window tests)" },
+  { when: "2026-08-07", round: "B3·R1", what: "pio test -e native -f test_sync_schedule (PM re-run)", result: "SUCCESS — 21/21 PASSED (19 existing + 2 new stale-backstop tests)" },
+  { when: "2026-08-07", round: "B3·R1", what: "pio run -e lilygo_t5_47_s3", result: "SUCCESS — RAM 19.8%, Flash 32.6% (1368409 B)" },
+  { when: "2026-08-07", round: "B3·R1", what: "marker census", result: "TODO(R2)=7 · TODO(TLS)=6 · TODO(TODO-BACKEND)=4 — unchanged from baseline" },
 ];
 
 // ── Marker ledger summary (open TODO(marker) counts, from latest report) ─────
 const markerLedger: { marker: string; open: number | null; note: string }[] = [
-  { marker: "TODO(R2)", open: 8, note: "7 src + 1 test — inherited calendar MONTHLY/YEARLY recurrence; PM-verified unchanged on feature/weather" },
+  { marker: "TODO(R2)", open: 7, note: "src/core/CalendarEvent.h:2 + IcsParser.h:5 — inherited calendar MONTHLY/YEARLY recurrence" },
   { marker: "TODO(R3)", open: 0, note: "All 3 resolved in CAL·R3" },
   { marker: "TODO(R4)", open: 0, note: "All calendar R4 findings closed" },
   { marker: "TODO(WTH-R2)", open: 0, note: "All 3 resolved in WTH·R2: 2 → WifiSession extraction, 1 → reclassified TODO(TLS)" },
-  { marker: "TODO(TLS)", open: 3, note: "CalendarSync + WeatherSync + TodoSync — replace setInsecure() with CA validation; deferred to shared hardening round (TodoSync extended the tag in TODO·R1)" },
-  { marker: "TODO(TODO-BACKEND)", open: 1, note: "AppRegistry.h — Todo disabled in launcher pending a backend that serves undated tasks (Google Tasks has no ICS feed). Re-enable by uncommenting the two TodoApp lines" },
+  { marker: "TODO(TLS)", open: 6, note: "CalendarSync + WeatherSync + TodoSync + GithubSync(×2) — replace setInsecure() with CA validation; deferred to shared hardening round" },
+  { marker: "TODO(TODO-BACKEND)", open: 4, note: "AppRegistry.h + AppManager.cpp/h + AgendaMerge.h — Todo disabled in launcher pending a backend that serves undated tasks" },
   { marker: "TODO(QR-R2)", open: 0, note: "QR·R2 review-closed: Q1 Safety + M1 Suggestion fixed & pinned; 0 Critical open; on-device scan BLOCKED (process gate, no code marker)" },
   { marker: "TODO(TODO-R2)", open: 0, note: "TODO·R2 review-closed: T1 phantom-task fix pinned; 0 Critical open; shared-seam UID change audited additive; live sync BLOCKED (process + soft gate)" },
 ];
@@ -284,6 +294,9 @@ const clearedChecks: { name: string; verified: string }[] = [
   { name: "Agenda R1 commits verified", verified: "2026-08-02 by PM; git log confirms eed51b4/38db6bd/e91d4c9/ecf3d30, 228/228 tests, no secrets" },
   { name: "Agenda R2 commits verified", verified: "2026-08-02 by PM; git log confirms 1170a33/5686f75/1efa36b, 229/229 tests, 0 Critical" },
   { name: "Agenda flashed to device (batch-1 final)", verified: "2026-08-02; pio -t upload SUCCESS on COM7 (hash verified); split-view launcher live" },
+  { name: "Batch 3 commits verified", verified: "2026-08-07 by PM; git log confirms 2e5db1c/6f2a8b2 on feature/batch3" },
+  { name: "Batch 3 test counts verified", verified: "2026-08-07 by PM; test_app_framework 28/28 + test_sync_schedule 21/21 PASSED" },
+  { name: "Batch 3 firmware build verified", verified: "2026-08-07 by PM; pio run SUCCESS RAM 19.8% Flash 32.6%" },
 ];
 
 const gates: { icon: string; name: string; act: string; how: string; ifSkipped: string }[] = [
@@ -400,6 +413,12 @@ export default function ProgressDashboard() {
           <>
             <div style={{ color: C.dim, fontSize: 11, margin: "12px 0 6px", textTransform: "uppercase", letterSpacing: 1 }}>Completed track — Multi-App Framework</div>
             <ChainTable rows={chainTertiary} />
+          </>
+        )}
+        {chainBatch3.length > 0 && (
+          <>
+            <div style={{ color: C.dim, fontSize: 11, margin: "12px 0 6px", textTransform: "uppercase", letterSpacing: 1 }}>Batch 3 — Quality of Life</div>
+            <ChainTable rows={chainBatch3} />
           </>
         )}
       </Section>
