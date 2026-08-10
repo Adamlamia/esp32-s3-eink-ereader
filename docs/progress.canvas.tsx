@@ -22,11 +22,11 @@ const C = {
 
 // ── Status header ────────────────────────────────────────────────────────────
 const meta = {
-  status: "MAIN 275a778 · Batch 3 merged · Backlog prioritised · 260 tests",
+  status: "MAIN 37bfa6b · P0 COMPLETE · All 3 P0 tasks done · 266 tests · 0 TODO(TLS)",
   updated: "2026-08-07",
-  round: "Backlog triage — next up: Library multi-tap (P0) + Launcher sync gap (P0)",
-  nextHumanAction: "Say 'next' to start P0 tasks, or reprioritise",
-  branch: "main (275a778)",
+  round: "P0 done — next: P1 (Weather UI/UX) or reprioritise",
+  nextHumanAction: "Say 'next' for P1, or flash device to verify P0 changes",
+  branch: "main (37bfa6b)",
 };
 
 // ── Locked tech stack (so decisions aren't re-litigated) ─────────────────────
@@ -61,6 +61,7 @@ const milestones: { id: string; name: string; progress: number; status: string; 
   { id: "M13", name: "Dev Companion (batch 2 · Feature 5)", progress: 100, status: "done", rounds: "DEV·R1–R2", done: "Reference viewer (4-bpp blit from SD) + GitHub dashboard (PRs/issues/CI); 2 Critical fixed; 257 tests; flashed" },
   { id: "M14", name: "Voice Journal (batch 2 · Feature 6) — P5 HOLD", progress: 100, status: "done", rounds: "VJ·R1", done: "Device-side code merged (batch 2); backend + full feature on hold (P5) until further notice" },
   { id: "M15", name: "Batch 3 — Multi-tap nav + Calendar sync + QR docs", progress: 100, status: "done", rounds: "B3·R1", done: "Multi-tap burst window for menus/launcher, calendar sync scheduled-only, DuitNow scan docs; 260 tests" },
+  { id: "M16", name: "P0 — Library multi-tap + Launcher sync + TLS CA", progress: 100, status: "done", rounds: "P0·R1", done: "Library browser multi-tap, launcher background tick for app sync, TLS CA validation (ISRG+GTS roots); 266 tests; 0 TODO(TLS)" },
 ];
 
 // ── Prompt chain — ACTIVE track: Batch-1 features (Weather → QR → Todo → Agenda) ─
@@ -78,6 +79,11 @@ const chain: { r: string; pattern: string; scope: string; status: StepStatus; no
 // ── Batch 3 track: quality-of-life improvements ──────────────────────────
 const chainBatch3: { r: string; pattern: string; scope: string; status: StepStatus; note: string }[] = [
   { r: "B3·R1", pattern: "Implementation", scope: "Multi-tap burst nav (menus/launcher) + calendar scheduled-only sync + DuitNow QR docs", status: "done", note: "2 commits (2e5db1c/6f2a8b2) · 260 tests (+31) · RAM 19.8% Flash 32.6% · burst window 350ms · all app menus updated · PM-verified" },
+];
+
+// ── P0 track: critical fixes ─────────────────────────────────────────────
+const chainP0: { r: string; pattern: string; scope: string; status: StepStatus; note: string }[] = [
+  { r: "P0·R1", pattern: "Implementation", scope: "Library multi-tap + launcher background sync gap + TLS CA validation (shared hardening)", status: "done", note: "3 commits (aea10ed/f48977e/0f9bf77) · 266 tests (+6) · RAM 19.8% Flash 32.8% · ISRG+GTS roots · 0 TODO(TLS) · PM-verified" },
 ];
 
 // ── Secondary track: CalendarApp (COMPLETE, merged to main c75e50d) ──────────
@@ -157,6 +163,10 @@ const verificationTimeline: { when: string; round: string; what: string; result:
   { when: "2026-08-07", round: "B3·R1", what: "pio test -e native -f test_sync_schedule (PM re-run)", result: "SUCCESS — 21/21 PASSED (19 existing + 2 new stale-backstop tests)" },
   { when: "2026-08-07", round: "B3·R1", what: "pio run -e lilygo_t5_47_s3", result: "SUCCESS — RAM 19.8%, Flash 32.6% (1368409 B)" },
   { when: "2026-08-07", round: "B3·R1", what: "marker census", result: "TODO(R2)=7 · TODO(TLS)=6 · TODO(TODO-BACKEND)=4 — unchanged from baseline" },
+  { when: "2026-08-07", round: "P0·R1", what: "pio test -e native -f test_cacerts (PM re-run)", result: "SUCCESS — 6/6 PASSED (new CA cert tests)" },
+  { when: "2026-08-07", round: "P0·R1", what: "pio test -e native -f test_app_framework (PM re-run)", result: "SUCCESS — 28/28 PASSED" },
+  { when: "2026-08-07", round: "P0·R1", what: "pio run -e lilygo_t5_47_s3", result: "SUCCESS — RAM 19.8%, Flash 32.8% (1373677 B)" },
+  { when: "2026-08-07", round: "P0·R1", what: "git grep TODO(TLS) marker census", result: "0 matches — all 6 TODO(TLS) resolved" },
 ];
 
 // ── Marker ledger summary (open TODO(marker) counts, from latest report) ─────
@@ -165,7 +175,7 @@ const markerLedger: { marker: string; open: number | null; note: string }[] = [
   { marker: "TODO(R3)", open: 0, note: "All 3 resolved in CAL·R3" },
   { marker: "TODO(R4)", open: 0, note: "All calendar R4 findings closed" },
   { marker: "TODO(WTH-R2)", open: 0, note: "All 3 resolved in WTH·R2: 2 → WifiSession extraction, 1 → reclassified TODO(TLS)" },
-  { marker: "TODO(TLS)", open: 6, note: "CalendarSync + WeatherSync + TodoSync + GithubSync(×2) — replace setInsecure() with CA validation; deferred to shared hardening round" },
+  { marker: "TODO(TLS)", open: 0, note: "All 6 resolved in P0·R1: CaCerts.h (ISRG+GTS roots) + wifiSessionApplyCa() helper + all 4 sync modules updated" },
   { marker: "TODO(TODO-BACKEND)", open: 4, note: "AppRegistry.h + AppManager.cpp/h + AgendaMerge.h — Todo disabled in launcher pending a backend that serves undated tasks" },
   { marker: "TODO(QR-R2)", open: 0, note: "QR·R2 review-closed: Q1 Safety + M1 Suggestion fixed & pinned; 0 Critical open; on-device scan BLOCKED (process gate, no code marker)" },
   { marker: "TODO(TODO-R2)", open: 0, note: "TODO·R2 review-closed: T1 phantom-task fix pinned; 0 Critical open; shared-seam UID change audited additive; live sync BLOCKED (process + soft gate)" },
@@ -235,9 +245,9 @@ const risks: { risk: string; impact: string; mitigation: string }[] = [
 
 // ── Prioritised backlog ───────────────────────────────────────────────────────
 const backlog: { priority: string; item: string; status: string; note: string }[] = [
-  { priority: "P0", item: "Library browser multi-tap", status: "Open", note: "ReaderApp moveLibrarySelection(1) still single-step; extend to use tapCount() like menus" },
-  { priority: "P0", item: "Launcher background sync gap", status: "Open", note: "Timer wake from launcher doesn't trigger app sync (no active app onLoop); needs background-tick hook in AppManager" },
-  { priority: "P0", item: "TLS CA validation (shared hardening)", status: "Open", note: "6 TODO(TLS) across Calendar, Weather, Todo, DevCompanion — all use setInsecure(); single shared round fixes all HTTPS" },
+  { priority: "P0", item: "Library browser multi-tap", status: "Done", note: "P0·R1: ReaderApp now uses tapCount() for library selection (aea10ed)" },
+  { priority: "P0", item: "Launcher background sync gap", status: "Done", note: "P0·R1: 1Hz background tick for all apps in launcher state (f48977e)" },
+  { priority: "P0", item: "TLS CA validation (shared hardening)", status: "Done", note: "P0·R1: CaCerts.h + wifiSessionApplyCa() + all 4 sync modules; 0 TODO(TLS) (0f9bf77)" },
   { priority: "P1", item: "Weather UI/UX enhancement", status: "Open", note: "Functional but needs visual polish pass; user confirmed layout works, wants dedicated pass" },
   { priority: "P2", item: "Todo backend decision", status: "Deferred", note: "Google Tasks has no ICS feed; decide Option C (ICS bridge) vs Option B (OAuth2); code+31 tests kept" },
   { priority: "P2", item: "DuitNow QR scanner compatibility", status: "Deferred", note: "Re-encoded EMVCo payload rejected by some scanners; investigate tag ordering / normalisation" },
@@ -311,6 +321,10 @@ const clearedChecks: { name: string; verified: string }[] = [
   { name: "Batch 3 commits verified", verified: "2026-08-07 by PM; git log confirms 2e5db1c/6f2a8b2 on feature/batch3" },
   { name: "Batch 3 test counts verified", verified: "2026-08-07 by PM; test_app_framework 28/28 + test_sync_schedule 21/21 PASSED" },
   { name: "Batch 3 firmware build verified", verified: "2026-08-07 by PM; pio run SUCCESS RAM 19.8% Flash 32.6%" },
+  { name: "P0 commits verified", verified: "2026-08-07 by PM; git log confirms aea10ed/f48977e/0f9bf77 on feature/p0" },
+  { name: "P0 test counts verified", verified: "2026-08-07 by PM; test_cacerts 6/6 + test_app_framework 28/28 PASSED" },
+  { name: "P0 firmware build verified", verified: "2026-08-07 by PM; pio run SUCCESS RAM 19.8% Flash 32.8%" },
+  { name: "P0 TODO(TLS) census verified", verified: "2026-08-07 by PM; git grep TODO(TLS) = 0 matches (all 6 resolved)" },
 ];
 
 const gates: { icon: string; name: string; act: string; how: string; ifSkipped: string }[] = [
@@ -433,6 +447,12 @@ export default function ProgressDashboard() {
           <>
             <div style={{ color: C.dim, fontSize: 11, margin: "12px 0 6px", textTransform: "uppercase", letterSpacing: 1 }}>Batch 3 — Quality of Life</div>
             <ChainTable rows={chainBatch3} />
+          </>
+        )}
+        {chainP0.length > 0 && (
+          <>
+            <div style={{ color: C.dim, fontSize: 11, margin: "12px 0 6px", textTransform: "uppercase", letterSpacing: 1 }}>P0 — Critical Fixes</div>
+            <ChainTable rows={chainP0} />
           </>
         )}
       </Section>
