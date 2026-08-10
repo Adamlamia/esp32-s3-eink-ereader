@@ -661,3 +661,167 @@ details[open] .help-toggle {
 .skeleton-text:last-child {
   width: 60%;
 }
+
+/* ==========================================================================
+   Responsive Design — Mobile Optimization
+   ==========================================================================
+   Mobile-first approach with breakpoints for touch optimization and
+   responsive layout adjustments.
+   ========================================================================== */
+
+/* --- Mobile (< 640px) ---------------------------------------------------- */
+@media (max-width: 639px) {
+  :root {
+    --space-6: 16px;
+    --space-8: 24px;
+  }
+
+  header {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  header h1 {
+    font-size: var(--text-lg);
+  }
+
+  main {
+    padding: var(--space-4);
+  }
+
+  .card {
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  .card h2 {
+    font-size: var(--text-base);
+  }
+
+  .dropzone {
+    padding: var(--space-6);
+  }
+
+  .dropzone-icon svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Stack modal actions vertically on small screens */
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
+  }
+
+  .modal-content {
+    padding: var(--space-6);
+    margin: var(--space-4);
+  }
+
+  /* Toast notifications full-width on mobile */
+  .toast-container {
+    left: var(--space-4);
+    right: var(--space-4);
+    bottom: var(--space-4);
+  }
+
+  .toast {
+    min-width: auto;
+    max-width: none;
+  }
+
+  /* Larger touch targets */
+  .del {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  footer {
+    flex-direction: column;
+    gap: var(--space-2);
+    text-align: center;
+    padding: var(--space-4);
+  }
+}
+
+/* --- Tablet (640px - 1024px) --------------------------------------------- */
+@media (min-width: 640px) and (max-width: 1024px) {
+  main {
+    max-width: 640px;
+  }
+}
+
+/* --- Desktop (> 1024px) -------------------------------------------------- */
+@media (min-width: 1025px) {
+  main {
+    max-width: 720px;
+  }
+
+  .card {
+    padding: var(--space-8);
+  }
+}
+
+/* --- Touch Optimizations ------------------------------------------------- */
+@media (hover: none) and (pointer: coarse) {
+  /* Larger touch targets for touch devices */
+  .btn,
+  .del,
+  .link {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Remove hover effects on touch devices */
+  .card:hover {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .books li:hover {
+    background: transparent;
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
+  }
+
+  /* Prevent zoom on input focus (iOS) */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* --- High Contrast Mode -------------------------------------------------- */
+@media (prefers-contrast: high) {
+  :root {
+    --color-line: #000000;
+    --color-muted: #333333;
+  }
+
+  .card {
+    border-width: 2px;
+  }
+
+  .btn,
+  .del {
+    border-width: 2px;
+  }
+}
+
+/* --- Print Styles -------------------------------------------------------- */
+@media print {
+  header,
+  footer,
+  .dropzone,
+  .del,
+  .toast-container,
+  .modal {
+    display: none !important;
+  }
+
+  .card {
+    border: 1px solid #000;
+    page-break-inside: avoid;
+  }
+}
