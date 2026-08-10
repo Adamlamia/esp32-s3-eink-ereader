@@ -42,11 +42,28 @@ void AppManager::begin() {
     _bootMs = _lastActivityMs = millis();
     _state = State::Launcher;
     _launcherSel = 0;
+    _burstActive = false;
+    _burstDelta = 0;
     drawLauncher();
 }
 
 void AppManager::loop() {
     handleButtonRaw();
+
+    // Close the burst window if it has expired (batch 3).
+    if (_burstActive && !core::isInBurstWindow(millis(), _burstStartMs, BTN_BURST_WINDOW_MS)) {
+        // Dispatch accumulated taps
+        if (_state == State::Launcher) {
+            _launcherSel = core::wrapSelection(_launcherSel, _burstDelta, _appCount);
+            drawLauncher();
+        } else if (_activeApp) {
+            _activeApp->setTapCount(_burstDelta);
+            _activeApp->onButton(ButtonEvent::Tap);
+            _activeApp->setTapCount(1);  // reset for next time
+        }
+        _burstActive = false;
+        _burstDelta = 0;
+    }
 
     // An app can ask to return to the launcher at any time (checked each tick).
     if (_homeRequested) {
@@ -234,6 +251,19 @@ void AppManager::handleButtonRaw() {
         if (!_longFired && core::isLongPress(now - _btnPressMs, BTN_LONGPRESS_MS)) {
             _longFired = true;
             _lastActivityMs = now;
+            // Dispatch any pending burst before the LongHold (batch 3).
+            if (_burstActive) {
+                if (_state == State::Launcher) {
+                    _launcherSel = core::wrapSelection(_launcherSel, _burstDelta, _appCount);
+                    drawLauncher();
+                } else if (_activeApp) {
+                    _activeApp->setTapCount(_burstDelta);
+                    _activeApp->onButton(ButtonEvent::Tap);
+                    _activeApp->setTapCount(1);
+                }
+                _burstActive = false;
+                _burstDelta = 0;
+            }
             if (_state == State::Launcher) {
                 activateApp(_launcherSel);
             } else if (_activeApp) {
@@ -253,14 +283,53 @@ void AppManager::handleButtonRaw() {
                 if (_state == State::Launcher) {
                     // Launcher only uses Tap (move selection); MediumHold ignored.
                     if (g == core::Gesture::Tap) {
-                        _launcherSel = core::wrapSelection(_launcherSel, 1, _appCount);
-                        drawLauncher();
+                        // Multi-tap burst accumulation (batch 3):
+                        if (!_burstActive) {
+                            // Start a new burst
+                            _burstActive = true;
+                            _burstStartMs = now;
+                            _burstDelta = 1;
+                        } else if (core::isInBurstWindow(now, _burstStartMs, BTN_BURST_WINDOW_MS)) {
+                            // Within burst window: accumulate
+                            _burstDelta++;
+                        } else {
+                            // Burst window closed: dispatch old, start new
+                            _launcherSel = core::wrapSelection(_launcherSel, _burstDelta, _appCount);
+                            drawLauncher();
+                            _burstStartMs = now;
+                            _burstDelta = 1;
+                        }
                     }
                 } else if (_activeApp) {
-                    if (g == core::Gesture::MediumHold)
+                    if (g == core::Gesture::MediumHold) {
+                        // Dispatch any pending burst before MediumHold (batch 3).
+                        if (_burstActive) {
+                            _activeApp->setTapCount(_burstDelta);
+                            _activeApp->onButton(ButtonEvent::Tap);
+                            _activeApp->setTapCount(1);
+                            _burstActive = false;
+                            _burstDelta = 0;
+                        }
                         _activeApp->onButton(ButtonEvent::MediumHold);
-                    else
-                        _activeApp->onButton(ButtonEvent::Tap);
+                    } else if (g == core::Gesture::Tap) {
+                        // Multi-tap burst accumulation (batch 3):
+                        if (!_burstActive) {
+                            // Start a new burst
+                            _burstActive = true;
+                            _burstStartMs = now;
+                            _burstDelta = 1;
+                        } else if (core::isInBurstWindow(now, _burstStartMs, BTN_BURST_WINDOW_MS)) {
+                            // Within burst window: accumulate
+                            _burstDelta++;
+                        } else {
+                            // Burst window closed: dispatch old, start new
+                            _activeApp->setTapCount(_burstDelta);
+                            _activeApp->onButton(ButtonEvent::Tap);
+                            _activeApp->setTapCount(1);
+                            _burstStartMs = now;
+                            _burstDelta = 1;
+                        }
+                    }
                 }
             }
         }
@@ -286,6 +355,9 @@ void AppManager::returnToLauncher() {
     _activeApp     = nullptr;
     _state         = State::Launcher;
     _homeRequested = false;
+    // Discard any pending burst on state change (batch 3).
+    _burstActive = false;
+    _burstDelta = 0;
     Serial.println("[AppManager] returned to launcher");
     drawLauncher();
 }
@@ -333,12 +405,8 @@ void AppManager::systemTasks(uint32_t now) {
             if (wakeSec >= 0) {
                 esp_sleep_enable_timer_wakeup((uint64_t)wakeSec * 1000000ULL);
                 Serial.printf("[AppManager] timer wakeup armed in %ld s\n", (long)wakeSec);
-            } else {
-                // No app needs a timer: clear any previously-armed timer source so
-                // this sleep is strictly button-only (the timer config lives in the
-                // RTC domain and would otherwise survive into later sleeps).
-                esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
             }
+            // Only disable timer if we didn't just enable it (avoid error)
 
             esp_light_sleep_start();
             _lastActivityMs = millis();   // reset on wake

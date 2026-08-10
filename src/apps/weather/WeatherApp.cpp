@@ -120,7 +120,7 @@ void WeatherApp::onButton(ButtonEvent ev) {
     if (_screen == Screen::Menu) {
         // Menu convention matches CalendarApp/ReaderApp: Tap moves, LongHold selects.
         if (ev == ButtonEvent::Tap) {
-            _menuSel = (_menuSel + 1) % MENU_COUNT;
+            _menuSel = (_menuSel + tapCount()) % MENU_COUNT;
             renderMenu();
         } else if (ev == ButtonEvent::LongHold) {
             menuSelect();

@@ -61,7 +61,7 @@ void QrApp::onButton(ButtonEvent ev) {
     // --- Menu screen ---
     if (_screen == Screen::Menu) {
         if (ev == ButtonEvent::Tap) {
-            _menuSel = (_menuSel + 1) % MENU_COUNT;   // wraps (single item)
+            _menuSel = (_menuSel + tapCount()) % MENU_COUNT;   // wraps (single item)
             renderMenu();
         } else if (ev == ButtonEvent::LongHold) {
             menuSelect();
@@ -73,7 +73,7 @@ void QrApp::onButton(ButtonEvent ev) {
     // --- Main screen ---
     if (ev == ButtonEvent::Tap) {
         if (!core::qrListIsEmpty(_entries)) {
-            _index = (_index + 1) % _entries.count;   // cycle entries, wrap
+            _index = (_index + tapCount()) % _entries.count;   // cycle entries, wrap
             renderMain();
         }
         // Tap in the EMPTY state: nothing to cycle — deliberately ignored

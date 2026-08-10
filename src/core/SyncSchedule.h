@@ -22,7 +22,7 @@
 //  Two decisions:
 //    shouldAutoSync()       — is a sync due right now? (clock valid, and one of:
 //                             never synced / crossed the daily sync hour since
-//                             the last sync / cache gone stale)
+//                             the last sync)
 //    secondsUntilNextSync() — seconds from now until the NEXT occurrence of
 //                             syncHourLocal (local); always > 0 so it is safe
 //                             to feed straight into a timer wakeup.
@@ -45,13 +45,15 @@ inline int64_t syncHourBoundaryUtc(int64_t nowUtc, int syncHourLocal, int32_t tz
 //   lastSyncUtc    TRUE UTC epoch of the last successful sync (<= 0 == never)
 //   syncHourLocal  local hour-of-day the daily sync targets (e.g. 6 for 06:00)
 //   tzOffsetSec    seconds east of UTC (e.g. 8*3600)
-//   staleSec       force a resync once the cache is at least this old; a value
-//                  <= 0 disables the stale backstop (daily boundary still applies)
+//   staleSec       unused (kept for backward compatibility); the stale backstop
+//                  was removed in batch 3 — sync now happens ONLY at the daily
+//                  hour or on manual "Sync now"
 //
 // Returns false on an invalid clock: we cannot schedule against a bad time, so
 // the caller should obtain NTP first rather than sync blindly.
 inline bool shouldAutoSync(int64_t nowUtc, int64_t lastSyncUtc,
                            int syncHourLocal, int32_t tzOffsetSec, int64_t staleSec) {
+    (void)staleSec;  // unused since batch 3 — kept for API compatibility
     if (nowUtc <= 0) return false;          // no valid time yet -> never "due"
     if (lastSyncUtc <= 0) return true;      // never synced -> sync as soon as possible
 
@@ -65,11 +67,6 @@ inline bool shouldAutoSync(int64_t nowUtc, int64_t lastSyncUtc,
     // (nowUtc >= boundary always holds after the adjustment above; kept explicit
     // to document the intent "last sync before the boundary, now after it".)
     if (lastSyncUtc < boundary && nowUtc >= boundary) return true;
-
-    // Stale backstop: even when no boundary was crossed yet (sync hour still
-    // ahead today), resync once the cache is old enough. Guards against a device
-    // that keeps missing the daily window. staleSec <= 0 disables this check.
-    if (staleSec > 0 && (nowUtc - lastSyncUtc) >= staleSec) return true;
 
     return false;
 }
