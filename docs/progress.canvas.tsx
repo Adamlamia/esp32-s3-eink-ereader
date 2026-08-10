@@ -22,11 +22,11 @@ const C = {
 
 // ── Status header ────────────────────────────────────────────────────────────
 const meta = {
-  status: "MAIN 37bfa6b · P0 COMPLETE · All 3 P0 tasks done · 266 tests · 0 TODO(TLS)",
+  status: "MAIN d2b0c5a · P1 COMPLETE · Weather UI polished · 266 tests · 0 TODO(TLS)",
   updated: "2026-08-07",
-  round: "P0 done — next: P1 (Weather UI/UX) or reprioritise",
-  nextHumanAction: "Say 'next' for P1, or flash device to verify P0 changes",
-  branch: "main (37bfa6b)",
+  round: "P1 done — next: P2 (Todo backend decision) or flash device to review P1",
+  nextHumanAction: "Flash device to review Weather UI, or say 'next' for P2",
+  branch: "main (d2b0c5a)",
 };
 
 // ── Locked tech stack (so decisions aren't re-litigated) ─────────────────────
@@ -62,6 +62,7 @@ const milestones: { id: string; name: string; progress: number; status: string; 
   { id: "M14", name: "Voice Journal (batch 2 · Feature 6) — P5 HOLD", progress: 100, status: "done", rounds: "VJ·R1", done: "Device-side code merged (batch 2); backend + full feature on hold (P5) until further notice" },
   { id: "M15", name: "Batch 3 — Multi-tap nav + Calendar sync + QR docs", progress: 100, status: "done", rounds: "B3·R1", done: "Multi-tap burst window for menus/launcher, calendar sync scheduled-only, DuitNow scan docs; 260 tests" },
   { id: "M16", name: "P0 — Library multi-tap + Launcher sync + TLS CA", progress: 100, status: "done", rounds: "P0·R1", done: "Library browser multi-tap, launcher background tick for app sync, TLS CA validation (ISRG+GTS roots); 266 tests; 0 TODO(TLS)" },
+  { id: "M17", name: "P1 — Weather UI visual polish", progress: 100, status: "done", rounds: "P1·R1", done: "Better visual hierarchy, spacing, and layout; shaded temperature box; section dividers; forecast alignment" },
 ];
 
 // ── Prompt chain — ACTIVE track: Batch-1 features (Weather → QR → Todo → Agenda) ─
@@ -84,6 +85,11 @@ const chainBatch3: { r: string; pattern: string; scope: string; status: StepStat
 // ── P0 track: critical fixes ─────────────────────────────────────────────
 const chainP0: { r: string; pattern: string; scope: string; status: StepStatus; note: string }[] = [
   { r: "P0·R1", pattern: "Implementation", scope: "Library multi-tap + launcher background sync gap + TLS CA validation (shared hardening)", status: "done", note: "3 commits (aea10ed/f48977e/0f9bf77) · 266 tests (+6) · RAM 19.8% Flash 32.8% · ISRG+GTS roots · 0 TODO(TLS) · PM-verified" },
+];
+
+// ── P1 track: Weather UI polish ───────────────────────────────────────────
+const chainP1: { r: string; pattern: string; scope: string; status: StepStatus; note: string }[] = [
+  { r: "P1·R1", pattern: "Implementation", scope: "Weather UI visual polish — better hierarchy, spacing, and layout", status: "done", note: "1 commit (f193b0c) · RAM 19.8% Flash 32.8% (+168B) · shaded temp box · section dividers · forecast alignment · PM-verified" },
 ];
 
 // ── Secondary track: CalendarApp (COMPLETE, merged to main c75e50d) ──────────
@@ -167,6 +173,7 @@ const verificationTimeline: { when: string; round: string; what: string; result:
   { when: "2026-08-07", round: "P0·R1", what: "pio test -e native -f test_app_framework (PM re-run)", result: "SUCCESS — 28/28 PASSED" },
   { when: "2026-08-07", round: "P0·R1", what: "pio run -e lilygo_t5_47_s3", result: "SUCCESS — RAM 19.8%, Flash 32.8% (1373677 B)" },
   { when: "2026-08-07", round: "P0·R1", what: "git grep TODO(TLS) marker census", result: "0 matches — all 6 TODO(TLS) resolved" },
+  { when: "2026-08-07", round: "P1·R1", what: "pio run -e lilygo_t5_47_s3", result: "SUCCESS — RAM 19.8%, Flash 32.8% (1373845 B, +168B from visual changes)" },
 ];
 
 // ── Marker ledger summary (open TODO(marker) counts, from latest report) ─────
@@ -245,10 +252,10 @@ const risks: { risk: string; impact: string; mitigation: string }[] = [
 
 // ── Prioritised backlog ───────────────────────────────────────────────────────
 const backlog: { priority: string; item: string; status: string; note: string }[] = [
-  { priority: "P0", item: "Library browser multi-tap", status: "Done", note: "P0·R1: ReaderApp now uses tapCount() for library selection (aea10ed)" },
-  { priority: "P0", item: "Launcher background sync gap", status: "Done", note: "P0·R1: 1Hz background tick for all apps in launcher state (f48977e)" },
-  { priority: "P0", item: "TLS CA validation (shared hardening)", status: "Done", note: "P0·R1: CaCerts.h + wifiSessionApplyCa() + all 4 sync modules; 0 TODO(TLS) (0f9bf77)" },
-  { priority: "P1", item: "Weather UI/UX enhancement", status: "Open", note: "Functional but needs visual polish pass; user confirmed layout works, wants dedicated pass" },
+  { priority: "P0", item: "Library browser multi-tap", status: "To Review", note: "P0·R1: ReaderApp now uses tapCount() for library selection (aea10ed) — PENDING REVIEW" },
+  { priority: "P0", item: "Launcher background sync gap", status: "To Review", note: "P0·R1: 1Hz background tick for all apps in launcher state (f48977e) — PENDING REVIEW" },
+  { priority: "P0", item: "TLS CA validation (shared hardening)", status: "To Review", note: "P0·R1: CaCerts.h + wifiSessionApplyCa() + all 4 sync modules; 0 TODO(TLS) (0f9bf77) — PENDING REVIEW" },
+  { priority: "P1", item: "Weather UI/UX enhancement", status: "To Review", note: "P1·R1: Visual polish — better hierarchy, spacing, layout; shaded temp box; section dividers (f193b0c) — PENDING REVIEW" },
   { priority: "P2", item: "Todo backend decision", status: "Deferred", note: "Google Tasks has no ICS feed; decide Option C (ICS bridge) vs Option B (OAuth2); code+31 tests kept" },
   { priority: "P2", item: "DuitNow QR scanner compatibility", status: "Deferred", note: "Re-encoded EMVCo payload rejected by some scanners; investigate tag ordering / normalisation" },
   { priority: "P5", item: "Voice Journal backend + full feature", status: "On hold", note: "Device-side code merged (batch 2); backend (Whisper+Ollama / cloud) and integration on hold until further notice" },
@@ -325,6 +332,8 @@ const clearedChecks: { name: string; verified: string }[] = [
   { name: "P0 test counts verified", verified: "2026-08-07 by PM; test_cacerts 6/6 + test_app_framework 28/28 PASSED" },
   { name: "P0 firmware build verified", verified: "2026-08-07 by PM; pio run SUCCESS RAM 19.8% Flash 32.8%" },
   { name: "P0 TODO(TLS) census verified", verified: "2026-08-07 by PM; git grep TODO(TLS) = 0 matches (all 6 resolved)" },
+  { name: "P1 commits verified", verified: "2026-08-07 by PM; git log confirms f193b0c on feature/p1" },
+  { name: "P1 firmware build verified", verified: "2026-08-07 by PM; pio run SUCCESS RAM 19.8% Flash 32.8% (+168B)" },
 ];
 
 const gates: { icon: string; name: string; act: string; how: string; ifSkipped: string }[] = [
@@ -453,6 +462,12 @@ export default function ProgressDashboard() {
           <>
             <div style={{ color: C.dim, fontSize: 11, margin: "12px 0 6px", textTransform: "uppercase", letterSpacing: 1 }}>P0 — Critical Fixes</div>
             <ChainTable rows={chainP0} />
+          </>
+        )}
+        {chainP1.length > 0 && (
+          <>
+            <div style={{ color: C.dim, fontSize: 11, margin: "12px 0 6px", textTransform: "uppercase", letterSpacing: 1 }}>P1 — Weather UI Polish</div>
+            <ChainTable rows={chainP1} />
           </>
         )}
       </Section>
