@@ -91,6 +91,16 @@
 /* --- Base Reset & Typography --------------------------------------------- */
 * { box-sizing: border-box; }
 
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -638,6 +648,47 @@ details[open] .help-toggle {
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+
+@keyframes checkmark {
+  0% {
+    stroke-dashoffset: 24;
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* --- Upload Success Animation -------------------------------------------- */
+.upload-success {
+  display: inline-block;
+  animation: scaleIn 300ms ease;
+}
+
+.upload-success svg {
+  stroke: var(--color-success);
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: checkmark 500ms ease 200ms forwards;
 }
 
 /* --- Skeleton Loading ---------------------------------------------------- */
