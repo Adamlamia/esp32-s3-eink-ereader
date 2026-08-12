@@ -10,7 +10,7 @@
 //  Views (Tap cycles):  Today  ->  Next 3 days  ->  Week (Monday-start)
 //
 //  Gestures (decoded by AppManager, delivered as ButtonEvent):
-//    Views:  Tap = cycle view        MediumHold = scroll list (page, wrap)
+//    Views:  Tap = cycle view        MediumHold = return to launcher
 //            LongHold = open menu
 //    Menu:   Tap = move highlight    LongHold = select item
 //            (matches ReaderApp's menu convention exactly)
@@ -93,7 +93,6 @@ private:
     View     _view         = View::Today;
     Screen   _screen       = Screen::Views;
     int      _page         = 0;       // first visible row in Today / Next3
-    bool     _scrollRequest = false;  // MediumHold: advance one page on redraw
     int      _menuSel      = 0;
     bool     _syncing      = false;   // true only while CalendarSync::run() blocks
 

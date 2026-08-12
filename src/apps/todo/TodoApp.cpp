@@ -118,7 +118,7 @@ void TodoApp::onButton(ButtonEvent ev) {
             renderMain();
         }
     } else if (ev == ButtonEvent::MediumHold) {
-        toggleSelected();   // secondary-action band: toggle done + persist NOW
+        if (_ctx.manager) _ctx.manager->requestHome();   // go back to launcher home
     } else if (ev == ButtonEvent::LongHold) {
         openMenu();         // house convention: long hold opens the menu
     }
@@ -217,7 +217,7 @@ void TodoApp::renderMain() {
         }
 #endif
         d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14,
-                       "Tap=move   M-Hold=toggle   Hold=menu");
+                       "Tap=move   M-Hold=home   Hold=menu");
         d.flush(true);
         return;
     }
@@ -236,7 +236,7 @@ void TodoApp::renderMain() {
     }
 
     // Footer: gesture legend + page indicator when the list scrolls.
-    String foot = "Tap=move   M-Hold=toggle   Hold=menu";
+    String foot = "Tap=move   M-Hold=home   Hold=menu";
     if (_rowCount > rowsPerPage) {
         int pages = (_rowCount + rowsPerPage - 1) / rowsPerPage;
         foot += "      " + String(_page / rowsPerPage + 1) + "/" + String(pages);
@@ -248,7 +248,11 @@ void TodoApp::renderMain() {
 
 // --- Menu --------------------------------------------------------------------
 static String menuLabelFor(int i) {
-    return i == 0 ? String("Sync now") : String("Back to Home");
+    switch (i) {
+        case 0: return String("Sync now");
+        case 1: return String("Toggle done");
+        default: return String("Back to Home");
+    }
 }
 
 void TodoApp::renderMenu() {
@@ -281,6 +285,10 @@ void TodoApp::openMenu() {
 void TodoApp::menuSelect() {
     if (_menuSel == 0) {
         runSync();
+        return;
+    }
+    if (_menuSel == 1) {
+        toggleSelected();
         return;
     }
     // "Back to Home"

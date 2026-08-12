@@ -229,8 +229,7 @@ void CalendarApp::onButton(ButtonEvent ev) {
         _page = 0;
         renderCurrent();                        // full refresh inside (view switch)
     } else if (ev == ButtonEvent::MediumHold) {
-        _scrollRequest = true;                  // consumed by renderList()
-        renderCurrent();
+        if (_ctx.manager) _ctx.manager->requestHome();
     } else if (ev == ButtonEvent::LongHold) {
         openMenu();
     }
@@ -368,14 +367,6 @@ void CalendarApp::renderList(const String &title, const String *rows,
     int rowsPerPage = (DISPLAY_HEIGHT - 46 - y0) / lh;
     if (rowsPerPage < 1) rowsPerPage = 1;
 
-    // MediumHold scroll: advance one page, wrapping back to the top.
-    if (_scrollRequest) {
-        _scrollRequest = false;
-        if (rowCount > rowsPerPage) {
-            _page += rowsPerPage;
-            if (_page >= rowCount) _page = 0;             // wrap
-        }
-    }
     if (_page < 0 || _page >= rowCount) _page = 0;        // clamp (view switch etc.)
 
     int y = y0;
@@ -393,11 +384,7 @@ void CalendarApp::renderList(const String &title, const String *rows,
     }
 
     // Footer: gesture legend + page indicator when the list scrolls.
-    String foot = "Tap=view   M-Hold=scroll   Hold=menu";
-    if (rowCount > rowsPerPage) {
-        int pages = (rowCount + rowsPerPage - 1) / rowsPerPage;
-        foot += "      " + String(_page / rowsPerPage + 1) + "/" + String(pages);
-    }
+    String foot = "Tap=view   M-Hold=home   Hold=menu";
     d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, foot);
 
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting

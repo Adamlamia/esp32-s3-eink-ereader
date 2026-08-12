@@ -62,7 +62,9 @@ void ReaderApp::onButton(ButtonEvent ev) {
 
         case Screen::Reading:
             if (ev == ButtonEvent::Tap)            _reader->nextPage();
-            else if (ev == ButtonEvent::MediumHold) _reader->prevPage();
+            else if (ev == ButtonEvent::MediumHold) {
+                if (_ctx.manager) _ctx.manager->requestHome();
+            }
             else if (ev == ButtonEvent::LongHold)   openMenu();
             break;
 

@@ -7,7 +7,7 @@
 //
 //  Gestures (decoded by AppManager, delivered as ButtonEvent):
 //    Library:  Tap = move highlight     LongHold = open / toggle
-//    Reading:  Tap = next page          MediumHold = prev page   LongHold = menu
+//    Reading:  Tap = next page          MediumHold = go home   LongHold = menu
 //    Menu:     Tap = move highlight     LongHold = select item
 // ===========================================================================
 #include "app/App.h"

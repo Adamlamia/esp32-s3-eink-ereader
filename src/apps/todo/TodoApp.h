@@ -23,18 +23,14 @@
 //  Gestures (decoded by AppManager, delivered as ButtonEvent):
 //    Main:   Tap        = move highlight (wraps; skips the group separator;
 //                         the list auto-pages to keep the selection visible)
-//            MediumHold = TOGGLE DONE on the highlighted task — persisted
-//                         immediately via TodoStore; the task moves between
-//                         the outstanding and completed groups. MediumHold is
-//                         the house "secondary action" band (ReaderApp: prev
-//                         page, CalendarApp: scroll), so the primary Tap
-//                         (move, as in every list/menu) stays unambiguous.
+//            MediumHold = return to launcher (AppManager::requestHome())
 //            LongHold   = open menu — the house convention shared by EVERY
 //                         app's main screen (Calendar / Weather / QR / Reader).
 //    Menu:   Tap = move highlight    LongHold = select item
 //            (matches CalendarApp / WeatherApp's menu convention exactly)
 //
-//  Menu items: "Sync now" (TodoSync, then reload cache + redraw) and
+//  Menu items: "Sync now" (TodoSync, then reload cache + redraw),
+//  "Toggle done" (toggle done-state on the highlighted task) and
 //  "Back to Home" (AppManager::requestHome()).
 //
 //  On-open resync: onEnter() loads the cache, then auto-refreshes (blocking,
@@ -99,7 +95,7 @@ private:
     void openMenu();
     void menuSelect();
     void runSync();
-    void toggleSelected();            // MediumHold: toggle done + persist NOW
+    void toggleSelected();            // Menu: toggle done + persist NOW
 
     // --- Helpers ---
     String lastSyncLine() const;
@@ -123,5 +119,5 @@ private:
     int      _menuSel      = 0;
     bool     _syncing      = false;   // true only while TodoSync::run() blocks
 
-    static const int MENU_COUNT = 2;  // Sync now, Back to Home
+    static const int MENU_COUNT = 3;  // Sync now, Toggle done, Back to Home
 };
