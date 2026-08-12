@@ -141,13 +141,13 @@ void test_parse_short_daily_arrays(void) {
 }
 
 void test_parse_long_daily_arrays_clamped(void) {
-    // 5 daily entries but capacity is WEATHER_FORECAST_DAYS (3): clamp, no crash.
+    // 10 daily entries but capacity is WEATHER_FORECAST_DAYS (7): clamp, no crash.
     WeatherSnapshot s;
     TEST_ASSERT_TRUE(parseOpenMeteo(
         "{\"current\":{\"temperature_2m\":26.0},"
-        "\"daily\":{\"weather_code\":[0,1,2,3,45],"
-        "\"temperature_2m_max\":[30.0,30.1,30.2,30.3,30.4],"
-        "\"temperature_2m_min\":[24.0,24.1,24.2,24.3,24.4]}}", s));
+        "\"daily\":{\"weather_code\":[0,1,2,3,45,51,61,71,81,95],"
+        "\"temperature_2m_max\":[30.0,30.1,30.2,30.3,30.4,30.5,30.6,30.7,30.8,30.9],"
+        "\"temperature_2m_min\":[24.0,24.1,24.2,24.3,24.4,24.5,24.6,24.7,24.8,24.9]}}", s));
     TEST_ASSERT_EQUAL_INT(WEATHER_FORECAST_DAYS, s.dayCount);
     TEST_ASSERT_EQUAL_INT(2, s.days[2].weatherCode);   // third entry, not fifth
 }
@@ -244,6 +244,11 @@ static WeatherSnapshot mkFullSnapshot(void) {
     s.days[0] = { 251, 316, 81, true };
     s.days[1] = { 248, 329, 80, true };
     s.days[2] = { 232, 314, 81, true };
+    s.hourCount       = 4;
+    s.hours[0] = { 243, 3, 6, true };   // 06:00, 24.3°C, partly cloudy
+    s.hours[1] = { 312, 0, 12, true };  // 12:00, 31.2°C, clear sky
+    s.hours[2] = { 278, 51, 18, true }; // 18:00, 27.8°C, drizzle
+    s.hours[3] = { 251, 3, 0, true };   // 00:00, 25.1°C, partly cloudy
     s.fetchedUtc = INT64_C(1785715200);
     strncpy(s.label, "Kuala Lumpur", WEATHER_LABEL_MAX - 1);
     s.label[WEATHER_LABEL_MAX - 1] = '\0';
@@ -261,6 +266,7 @@ void test_cache_roundtrip_full(void) {
     TEST_ASSERT_TRUE(json.find("\"lbl\":\"Kuala Lumpur\"") != std::string::npos);
     TEST_ASSERT_TRUE(json.find("\"cur\":{")      != std::string::npos);
     TEST_ASSERT_TRUE(json.find("\"days\":[")     != std::string::npos);
+    TEST_ASSERT_TRUE(json.find("\"hrs\":[")      != std::string::npos);
 
     WeatherSnapshot out;
     TEST_ASSERT_TRUE(deserializeWeatherCache(json, out));
@@ -278,6 +284,14 @@ void test_cache_roundtrip_full(void) {
         TEST_ASSERT_EQUAL_INT16(in.days[i].tMin, out.days[i].tMin);
         TEST_ASSERT_EQUAL_INT16(in.days[i].tMax, out.days[i].tMax);
         TEST_ASSERT_EQUAL_INT(in.days[i].weatherCode, out.days[i].weatherCode);
+    }
+    // hourly data round-trip
+    TEST_ASSERT_EQUAL_INT(4, out.hourCount);
+    for (int i = 0; i < 4; i++) {
+        TEST_ASSERT_TRUE(out.hours[i].valid);
+        TEST_ASSERT_EQUAL_INT(in.hours[i].hourLocal, out.hours[i].hourLocal);
+        TEST_ASSERT_EQUAL_INT16(in.hours[i].tempTenths, out.hours[i].tempTenths);
+        TEST_ASSERT_EQUAL_INT(in.hours[i].weatherCode, out.hours[i].weatherCode);
     }
 }
 
@@ -418,6 +432,72 @@ void test_cache_dataless_doc_is_empty_state(void) {
 }
 
 // ===========================================================================
+//  Hourly data round-trips (WTH·R2 redesign)
+// ===========================================================================
+void test_cache_hourly_roundtrip(void) {
+    // Hourly data round-trips correctly through serialize/deserialize.
+    WeatherSnapshot in;
+    weatherSnapshotClear(in);
+    in.hourCount = 4;
+    in.hours[0] = { 243, 3, 6, true };
+    in.hours[1] = { 312, 0, 12, true };
+    in.hours[2] = { -52, 71, 18, true };  // negative temp
+    in.hours[3] = { 251, -1, 0, false };  // invalid slot
+    
+    std::string json;
+    serializeWeatherCache(json, in);
+    TEST_ASSERT_TRUE(json.find("\"hrs\":[") != std::string::npos);
+    
+    WeatherSnapshot out;
+    TEST_ASSERT_TRUE(deserializeWeatherCache(json, out));
+    TEST_ASSERT_EQUAL_INT(4, out.hourCount);
+    TEST_ASSERT_EQUAL_INT(6, out.hours[0].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(243, out.hours[0].tempTenths);
+    TEST_ASSERT_EQUAL_INT(3, out.hours[0].weatherCode);
+    TEST_ASSERT_TRUE(out.hours[0].valid);
+    TEST_ASSERT_EQUAL_INT(12, out.hours[1].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(-52, out.hours[2].tempTenths);  // negative temp preserved
+    TEST_ASSERT_EQUAL_INT(-1, out.hours[3].weatherCode);
+    TEST_ASSERT_FALSE(out.hours[3].valid);
+}
+
+void test_cache_hourly_sanitised(void) {
+    // Out-of-range cached hourly tenths clamp to int16_t range; weather code
+    // outside -1..99 normalises to -1 (unknown).
+    WeatherSnapshot out;
+    TEST_ASSERT_TRUE(deserializeWeatherCache(
+        "{\"v\":1,\"hrs\":[{\"h\":6,\"t\":99999,\"c\":777,\"ok\":true}]}", out));
+    TEST_ASSERT_EQUAL_INT(1, out.hourCount);
+    TEST_ASSERT_EQUAL_INT16(32760, out.hours[0].tempTenths);  // clamped
+    TEST_ASSERT_EQUAL_INT(-1, out.hours[0].weatherCode);     // out of range -> -1
+    TEST_ASSERT_TRUE(out.hours[0].valid);
+}
+
+void test_parse_hourly_data(void) {
+    // Parse hourly data from a response with 48 hours of data.
+    WeatherSnapshot s;
+    TEST_ASSERT_TRUE(parseOpenMeteo(
+        "{\"current\":{\"temperature_2m\":26.0},"
+        "\"daily\":{\"weather_code\":[1],\"temperature_2m_max\":[30.0],\"temperature_2m_min\":[24.0]},"
+        "\"hourly\":{\"time\":[\"2026-08-07T00:00\",\"2026-08-07T06:00\",\"2026-08-07T12:00\","
+        "\"2026-08-07T18:00\",\"2026-08-08T00:00\"],"
+        "\"temperature_2m\":[25.0,24.3,31.2,27.8,25.1],"
+        "\"weather_code\":[3,3,0,51,3]}}", s));
+    TEST_ASSERT_EQUAL_INT(4, s.hourCount);
+    TEST_ASSERT_EQUAL_INT(6, s.hours[0].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(243, s.hours[0].tempTenths);
+    TEST_ASSERT_EQUAL_INT(3, s.hours[0].weatherCode);
+    TEST_ASSERT_TRUE(s.hours[0].valid);
+    TEST_ASSERT_EQUAL_INT(12, s.hours[1].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(312, s.hours[1].tempTenths);
+    TEST_ASSERT_EQUAL_INT(0, s.hours[1].weatherCode);
+    TEST_ASSERT_EQUAL_INT(18, s.hours[2].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(278, s.hours[2].tempTenths);
+    TEST_ASSERT_EQUAL_INT(0, s.hours[3].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(251, s.hours[3].tempTenths);  // last T00:00 (next day)
+}
+
+// ===========================================================================
 //  buildOpenMeteoUrl
 // ===========================================================================
 void test_url_kl_defaults(void) {
@@ -430,9 +510,11 @@ void test_url_kl_defaults(void) {
     TEST_ASSERT_NOT_NULL(strstr(url, "latitude=3.1390"));
     TEST_ASSERT_NOT_NULL(strstr(url, "longitude=101.6869"));
     TEST_ASSERT_NOT_NULL(strstr(url, "timezone=Asia%2FKuala_Lumpur"));  // '/' encoded
-    TEST_ASSERT_NOT_NULL(strstr(url, "forecast_days=3"));
+    TEST_ASSERT_NOT_NULL(strstr(url, "forecast_days=7"));
     TEST_ASSERT_NOT_NULL(strstr(url, "current=temperature_2m"));
     TEST_ASSERT_NOT_NULL(strstr(url, "daily=weather_code"));
+    TEST_ASSERT_NOT_NULL(strstr(url, "hourly=temperature_2m"));
+    TEST_ASSERT_NOT_NULL(strstr(url, "forecast_hours=48"));
 }
 
 // NEGATIVE TEST: a too-small caller buffer must yield an EMPTY string (loud
@@ -522,6 +604,10 @@ int main(int, char **) {
     RUN_TEST(test_cache_day_temps_sanitised);
     RUN_TEST(test_cache_day_code_out_of_range);
     RUN_TEST(test_cache_dataless_doc_is_empty_state);
+    // hourly data (WTH·R2 redesign)
+    RUN_TEST(test_cache_hourly_roundtrip);
+    RUN_TEST(test_cache_hourly_sanitised);
+    RUN_TEST(test_parse_hourly_data);
     // URL builder
     RUN_TEST(test_url_kl_defaults);
     RUN_TEST(test_url_small_cap_yields_empty);

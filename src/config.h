@@ -188,10 +188,10 @@
 // + RAII-WiFi-off + portal-guard lifecycle).
 #define WEATHER_CACHE_FILE      "/weather.json"   // cache path on the active FS
 #define WEATHER_LABEL_MAX       24          // location label buffer (chars, incl. NUL)
-#define WEATHER_FORECAST_DAYS   3           // daily forecast rows fetched + cached
-#define WEATHER_URL_MAX         320         // request-URL buffer: the full Open-Meteo
-                                            // URL with all current+daily fields is
-                                            // ~270 chars, so 192 would never fit
+#define WEATHER_FORECAST_DAYS   7           // daily forecast rows fetched + cached
+#define WEATHER_URL_MAX         400         // request-URL buffer: the full Open-Meteo
+                                            // URL with current+daily+hourly fields is
+                                            // ~340 chars, so 320 would not fit
 #define WEATHER_BODY_MAX        8192        // reject bodies above this (real payload < 1 KB)
 #define WEATHER_STALE_SEC       (3 * 3600)  // on-open resync threshold: 3 h since fetch
 #define WEATHER_MIN_BATTERY_FOR_SYNC 15     // % floor for AUTO (on-open) resync only;

@@ -243,7 +243,7 @@ void test_serialize_journal_null_entries(void) {
     serializeJournalCache(json, nullptr, 5);
     
     // Should produce valid JSON with empty entries array
-    TEST_ASSERT_TRUE(json.find("{\"v\":1,\"entries\":[\]}")) != std::string::npos);
+    TEST_ASSERT_TRUE(json.find("{\"v\":1,\"entries\":[]}") != std::string::npos);
 }
 
 void test_deserialize_journal_null_input(void) {

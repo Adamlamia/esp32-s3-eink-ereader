@@ -1,21 +1,17 @@
 #pragma once
 // ===========================================================================
-//  WeatherApp  —  Open-Meteo weather application (WTH·R1)
+//  WeatherApp  —  Open-Meteo weather application (WTH·R1 + R2 redesign)
 // ===========================================================================
-//  Renders the cached Open-Meteo snapshot (WeatherStore) on a single screen
-//  and refreshes it on demand via WeatherSync. All parsing / URL building /
+//  Renders the cached Open-Meteo snapshot (WeatherStore) in two views and
+//  refreshes it on demand via WeatherSync. All parsing / URL building /
 //  sync logic lives in the existing seams; this class is pure presentation +
 //  gesture routing, modelled on CalendarApp.
 //
-//  Screen (single — no view cycle):  location label, current temperature +
-//  WMO glyph, feels-like, humidity, wind, a 3-day forecast row (day-of-week
-//  labels derived from fetchedUtc via core::CalendarDate), last-fetch line.
+//  Views (Tap cycles):  Today (current + hourly)  ->  Week (7-day forecast)
 //
 //  Gestures (decoded by AppManager, delivered as ButtonEvent):
-//    Main:   Tap = manual refresh (always allowed — the battery floor
-//                WEATHER_MIN_BATTERY_FOR_SYNC guards AUTO resyncs only)
-//            MediumHold = deliberate NO-OP (single screen: nothing to scroll
-//                or cycle; kept in the gesture map so behaviour is explicit)
+//    Views:  Tap = cycle view (Today→Week)
+//            MediumHold = return to launcher (AppManager::requestHome())
 //            LongHold = open menu
 //    Menu:   Tap = move highlight    LongHold = select item
 //            (matches CalendarApp / ReaderApp's menu convention exactly)
@@ -27,7 +23,7 @@
 //  "Fetching..." splash) iff the snapshot is missing OR stale (older than
 //  WEATHER_STALE_SEC) AND the battery is above the floor AND the portal is
 //  not running AND STA secrets exist. Otherwise it renders the cache, or the
-//  empty state ("No weather yet - Tap to refresh").
+//  empty state ("No weather yet - Hold -> menu -> Refresh now").
 //
 //  No scheduled sync (deliberate): unlike CalendarApp there is NO
 //  sleepWakeupSec() override and no onLoop() auto-sync. Weather has no fixed
@@ -68,6 +64,8 @@ public:
 private:
     // --- Screen state machine ---
     enum class Screen : uint8_t { Main = 0, Menu = 1 };
+    // --- View state machine ---
+    enum class View   : uint8_t { Today = 0, Week = 1 };
 
     // --- Cache ---
     void loadCache();                 // WeatherStore -> _snap
@@ -76,7 +74,9 @@ private:
     bool shouldAutoSyncOnEnter() const;
 
     // --- Rendering ---
-    void renderMain();
+    void renderCurrent();             // dispatch on _view
+    void renderToday();               // current conditions + 4-slot hourly
+    void renderWeek();                // 7-day forecast list
     void renderMenu();
 
     // --- Menu / actions ---
@@ -91,6 +91,7 @@ private:
     SystemContext        &_ctx;
     core::WeatherSnapshot _snap;      // in-memory copy of the cache
     Screen _screen     = Screen::Main;
+    View   _view       = View::Today;
     int      _menuSel  = 0;
     bool     _syncing  = false;       // true only while WeatherSync::run() blocks
 

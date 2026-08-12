@@ -1,5 +1,5 @@
 // ===========================================================================
-//  WeatherApp.cpp  —  weather UI implementation (WTH·R1)
+//  WeatherApp.cpp  —  weather UI implementation (WTH·R1 + R2 redesign)
 // ===========================================================================
 //  Presentation + gesture routing only. Reuses:
 //    WeatherStore     — cache load/save
@@ -72,6 +72,7 @@ WeatherApp::WeatherApp(SystemContext &ctx)
 void WeatherApp::onEnter() {
     loadCache();
     _screen = Screen::Main;
+    _view   = View::Today;
     _menuSel = 0;
 
     // On-open resync (see header): only when stale/empty AND the cheap
@@ -80,15 +81,16 @@ void WeatherApp::onEnter() {
     if (shouldAutoSyncOnEnter()) {
         Serial.printf("[Weather] on-open resync (fetched=%lld batt=%d%%)\n",
                       (long long)_snap.fetchedUtc, _ctx.batteryPct);
-        runSync();          // splash -> sync -> reload -> renderMain
+        runSync();          // splash -> sync -> reload -> renderCurrent
     } else {
-        renderMain();
+        renderCurrent();
     }
 }
 
 void WeatherApp::onExit() {
     // Cache stays in memory; just reset navigation for a clean re-entry.
     _screen = Screen::Main;
+    _view   = View::Today;
 }
 
 // --- On-open auto-resync decision -------------------------------------------
@@ -128,14 +130,12 @@ void WeatherApp::onButton(ButtonEvent ev) {
         return;
     }
 
-    // --- Main screen ---
+    // --- Views ---
     if (ev == ButtonEvent::Tap) {
-        // No-op on main screen: tap does nothing (the menu has Refresh now).
-        // This prevents accidental refreshes and makes the gesture map predictable.
+        _view = (View)(((int)_view + 1) % 2);   // Today -> Week -> Today
+        renderCurrent();
     } else if (ev == ButtonEvent::MediumHold) {
-        // Deliberate no-op (documented in the header): single-screen app with
-        // nothing to scroll or cycle. Ignored rather than repurposed so the
-        // gesture map stays predictable.
+        if (_ctx.manager) _ctx.manager->requestHome();
     } else if (ev == ButtonEvent::LongHold) {
         openMenu();
     }
@@ -154,28 +154,33 @@ String WeatherApp::lastSyncLine() const {
          + "   " + String(_snap.dayCount) + " day(s) cached";
 }
 
-// --- Rendering: main screen --------------------------------------------------
-void WeatherApp::renderMain() {
+// --- Rendering: dispatch ----------------------------------------------------
+void WeatherApp::renderCurrent() {
+    switch (_view) {
+        case View::Today: renderToday(); break;
+        case View::Week:  renderWeek();  break;
+    }
+}
+
+// --- Rendering: Today (current conditions + 4-slot hourly) -------------------
+void WeatherApp::renderToday() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
 
-    // --- Title bar (tighter to top for better vertical balance) ---
+    // --- Title bar ---
     d.drawTextCentered(30, String("Weather - ") + String(_snap.label), 2);
     d.drawBookText(MARGIN_X, 62, lastSyncLine());
 
     const bool haveData = _snap.cur.valid || _snap.dayCount > 0;
     if (!haveData) {
-        // Empty state: never synced (or every load failed).
-        // Center the message vertically for better visual balance.
         d.drawBookText(MARGIN_X, 240, "No weather yet - Hold -> menu -> Refresh now.");
         d.drawBookText(MARGIN_X, 272, "Or wait for the next automatic fetch.");
-        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Hold=menu");
+        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
         d.flush(true);
         return;
     }
 
     // --- Current conditions section ---
-    // Tighter spacing: start at y=100 (was 160) to reduce the large gap.
     int y = 100;
     if (_snap.cur.valid) {
         // Weather glyph + description (compact single line).
@@ -185,11 +190,10 @@ void WeatherApp::renderMain() {
         y += 36;
 
         // The headline temperature: the hero element.
-        // Add a subtle shaded background to make it stand out visually.
         String tempLine = fmt1(_snap.cur.tempC) + " C   feels " + fmt1(_snap.cur.feelsC) + " C";
         int tempBoxW = d.textWidth(tempLine, false) + 32;
         int tempBoxH = 52;
-        d.fillRectShade(MARGIN_X - 8, y - 8, tempBoxW, tempBoxH, 230);  // light gray background
+        d.fillRectShade(MARGIN_X - 8, y - 8, tempBoxW, tempBoxH, 230);
         d.drawText(MARGIN_X, y, tempLine, 2);
         y += 58;
 
@@ -201,15 +205,58 @@ void WeatherApp::renderMain() {
         d.drawBookText(MARGIN_X, y, "Current conditions unavailable.");
     }
 
-    // --- Visual divider between current and forecast sections ---
-    // A thin shaded band creates clear separation without heavy ink.
+    // --- Visual divider ---
     int dividerY = 275;
     d.fillRectShade(MARGIN_X, dividerY, DISPLAY_WIDTH - 2 * MARGIN_X, 3, 180);
 
-    // --- 3-day forecast section ---
-    // Better vertical balance: forecast starts at y=300.
+    // --- Hourly section ---
     y = 300;
-    d.drawTextCentered(y, "--- Next 3 Days ---", 1);
+    d.drawTextCentered(y, "--- Today's Hourly ---", 1);
+    y += 44;
+
+    if (_snap.hourCount > 0) {
+        for (int i = 0; i < _snap.hourCount && i < WEATHER_HOURLY_SLOTS; i++, y += 42) {
+            const core::WeatherHour &h = _snap.hours[i];
+            if (!h.valid) continue;
+
+            // Format hour label: "06:00", "12:00", "18:00", "00:00"
+            char hourBuf[8];
+            snprintf(hourBuf, sizeof(hourBuf), "%02d:00", h.hourLocal);
+
+            String row = String(hourBuf) + "  "
+                       + "[" + core::weatherCodeGlyph(h.weatherCode) + "]  "
+                       + fmtTenths(h.tempTenths) + " C";
+            d.drawBookText(MARGIN_X + 20, y, row);
+        }
+    } else {
+        d.drawBookText(MARGIN_X + 20, y, "Hourly data unavailable");
+    }
+
+    // Footer: gesture legend.
+    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
+    d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
+}
+
+// --- Rendering: Week (7-day forecast list) ------------------------------------
+void WeatherApp::renderWeek() {
+    DisplayManager &d = _ctx.display;
+    d.clearBuffer();
+
+    // --- Title bar ---
+    d.drawTextCentered(30, String("Weather - ") + String(_snap.label), 2);
+    d.drawBookText(MARGIN_X, 62, lastSyncLine());
+
+    const bool haveData = _snap.dayCount > 0;
+    if (!haveData) {
+        d.drawBookText(MARGIN_X, 240, "No forecast data - Hold -> menu -> Refresh now.");
+        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
+        d.flush(true);
+        return;
+    }
+
+    // --- 7-day forecast section ---
+    int y = 100;
+    d.drawTextCentered(y, "--- Next 7 Days ---", 1);
     y += 44;
 
     // Day labels anchor at local midnight of the FETCH day: Open-Meteo's
@@ -230,7 +277,7 @@ void WeatherApp::renderMain() {
     }
 
     // Footer: gesture legend.
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Hold=menu");
+    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }
 
@@ -291,5 +338,5 @@ void WeatherApp::runSync() {
                   (int)r.ok, r.httpStatus, r.message);
     _ctx.display.showMessage(r.ok ? "Fetch OK" : "Fetch failed", String(r.message));
     delay(1600);                        // let the user read the result
-    renderMain();
+    renderCurrent();
 }
