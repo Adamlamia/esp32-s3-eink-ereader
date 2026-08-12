@@ -50,7 +50,7 @@
   #define WEATHER_BODY_MAX 8192
 #endif
 #ifndef WEATHER_HOURLY_SLOTS
-  #define WEATHER_HOURLY_SLOTS 4   // 4 key times: 06:00, 12:00, 18:00, 00:00
+  #define WEATHER_HOURLY_SLOTS 12   // every 2 hours: 00 02 04 06 08 10 12 14 16 18 20 22
 #endif
 
 namespace core {
@@ -258,7 +258,7 @@ inline bool parseOpenMeteo(const std::string &json, WeatherSnapshot &out) {
     }
     out.dayCount = n;
 
-    // --- hourly data (4 key times extracted from 48h window) ---
+    // --- hourly data (12 slots: every 2 hours from 00 to 22) ---
     JsonVariant hourlyV = root["hourly"];
     if (!hourlyV.isNull() && hourlyV.is<JsonObject>()) {
         JsonObject hourly = hourlyV.as<JsonObject>();
@@ -266,11 +266,9 @@ inline bool parseOpenMeteo(const std::string &json, WeatherSnapshot &out) {
         JsonArray hTemp = hourly["temperature_2m"].as<JsonArray>();
         JsonArray hCode = hourly["weather_code"].as<JsonArray>();
 
-        // Extract the 4 key local hours: 6, 12, 18, 0 (midnight next day)
-        // Open-Meteo "time" is ISO 8601 local time strings like "2026-08-07T06:00"
-        // We scan for matching HH:00 patterns.
-        static const int TARGET_HOURS[4] = { 6, 12, 18, 0 };
-        for (int slot = 0; slot < 4; ++slot) {
+        // 12 target hours: 00, 02, 04, 06, 08, 10, 12, 14, 16, 18, 20, 22
+        static const int TARGET_HOURS[12] = { 0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22 };
+        for (int slot = 0; slot < 12; ++slot) {
             WeatherHour &wh = out.hours[slot];
             wh.hourLocal = TARGET_HOURS[slot];
             wh.valid = false;
@@ -280,39 +278,24 @@ inline bool parseOpenMeteo(const std::string &json, WeatherSnapshot &out) {
             for (int hi = 0; hi < (int)hTime.size(); ++hi) {
                 const char *ts = hTime[hi].as<const char *>();
                 if (!ts) continue;
-                // Find "T" then parse 2-digit hour
                 const char *t = strchr(ts, 'T');
                 if (!t) continue;
                 int hh = (t[1] - '0') * 10 + (t[2] - '0');
                 if (hh == TARGET_HOURS[slot]) {
-                    // For hour 0 (midnight), prefer the LAST occurrence (next day midnight)
-                    // For others (6,12,18), prefer the FIRST occurrence (today)
-                    if (TARGET_HOURS[slot] == 0) {
-                        // Keep scanning to find the last T00:00
-                        if (hi < (int)hTemp.size() && hTemp[hi].is<float>() && std::isfinite(hTemp[hi].as<float>())) {
-                            wh.tempTenths = tempToTenths(hTemp[hi].as<float>());
-                            wh.valid = true;
-                        }
-                        if (hi < (int)hCode.size()) {
-                            long hc = hCode[hi] | -1L;
-                            wh.weatherCode = (hc >= 0 && hc <= 99) ? (int)hc : -1;
-                        }
-                    } else {
-                        // First match for hours 6, 12, 18
-                        if (hi < (int)hTemp.size() && hTemp[hi].is<float>() && std::isfinite(hTemp[hi].as<float>())) {
-                            wh.tempTenths = tempToTenths(hTemp[hi].as<float>());
-                            wh.valid = true;
-                        }
-                        if (hi < (int)hCode.size()) {
-                            long hc = hCode[hi] | -1L;
-                            wh.weatherCode = (hc >= 0 && hc <= 99) ? (int)hc : -1;
-                        }
-                        break;  // done with this slot
+                    // Take the FIRST occurrence of this hour (today's data)
+                    if (hi < (int)hTemp.size() && hTemp[hi].is<float>() && std::isfinite(hTemp[hi].as<float>())) {
+                        wh.tempTenths = tempToTenths(hTemp[hi].as<float>());
+                        wh.valid = true;
                     }
+                    if (hi < (int)hCode.size()) {
+                        long hc = hCode[hi] | -1L;
+                        wh.weatherCode = (hc >= 0 && hc <= 99) ? (int)hc : -1;
+                    }
+                    break;
                 }
             }
         }
-        out.hourCount = 4;
+        out.hourCount = 12;
     }
     return true;
 }
@@ -501,7 +484,7 @@ inline void buildOpenMeteoUrl(char *out, size_t cap, float lat, float lon,
         "&current=temperature_2m,apparent_temperature,relative_humidity_2m,"
         "wind_speed_10m,weather_code"
         "&daily=weather_code,temperature_2m_max,temperature_2m_min"
-        "&hourly=temperature_2m,weather_code&forecast_hours=48"
+        "&hourly=temperature_2m,weather_code"
         "&timezone=%s&forecast_days=%d",
         (double)lat, (double)lon, tzEnc, (int)WEATHER_FORECAST_DAYS);
 

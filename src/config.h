@@ -192,7 +192,8 @@
 #define WEATHER_URL_MAX         400         // request-URL buffer: the full Open-Meteo
                                             // URL with current+daily+hourly fields is
                                             // ~340 chars, so 320 would not fit
-#define WEATHER_BODY_MAX        8192        // reject bodies above this (real payload < 1 KB)
+#define WEATHER_HOURLY_SLOTS    12          // every 2 hours: 00 02 04 06 08 10 12 14 16 18 20 22
+#define WEATHER_BODY_MAX        16384       // hourly data for 7 days is ~10KB
 #define WEATHER_STALE_SEC       (3 * 3600)  // on-open resync threshold: 3 h since fetch
 #define WEATHER_MIN_BATTERY_FOR_SYNC 15     // % floor for AUTO (on-open) resync only;
                                             // manual refresh is always allowed

@@ -162,121 +162,153 @@ void WeatherApp::renderCurrent() {
     }
 }
 
-// --- Rendering: Today (current conditions + 4-slot hourly) -------------------
+// --- Rendering: Today (current conditions + 12-slot 2-hour hourly grid) ------
 void WeatherApp::renderToday() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
 
-    // --- Title bar ---
-    d.drawTextCentered(30, String("Weather - ") + String(_snap.label), 2);
-    d.drawBookText(MARGIN_X, 62, lastSyncLine());
+    // Title + sync time
+    d.drawTextCentered(22, String(_snap.label), 2);
+    if (_snap.fetchedUtc > 0) {
+        int64_t y_dummy; unsigned m_dummy, dd, hh, mm, ss;
+        core::civilFromUtc(_snap.fetchedUtc, CAL_TZ_OFFSET_SEC, y_dummy, m_dummy, dd, hh, mm, ss);
+        char timeBuf[16];
+        snprintf(timeBuf, sizeof(timeBuf), "Updated %02u:%02u", hh, mm);
+        d.drawTextCentered(52, String(timeBuf), 1);
+    } else {
+        d.drawTextCentered(52, "Never fetched", 1);
+    }
 
-    const bool haveData = _snap.cur.valid || _snap.dayCount > 0;
+    const bool haveData = _snap.cur.valid || _snap.hourCount > 0;
     if (!haveData) {
-        d.drawBookText(MARGIN_X, 240, "No weather yet - Hold -> menu -> Refresh now.");
-        d.drawBookText(MARGIN_X, 272, "Or wait for the next automatic fetch.");
+        d.drawTextCentered(260, "No weather yet", 2);
+        d.drawTextCentered(310, "LongHold -> menu -> Refresh now", 1);
         d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
         d.flush(true);
         return;
     }
 
-    // --- Current conditions section ---
-    int y = 100;
+    // Current conditions — compact block
+    int y = 78;
     if (_snap.cur.valid) {
-        // Weather glyph + description (compact single line).
-        String glyphLine = String("[") + core::weatherCodeGlyph(_snap.cur.weatherCode)
-                         + "]  " + codeName(_snap.cur.weatherCode);
-        d.drawBookText(MARGIN_X, y, glyphLine);
-        y += 36;
+        // Temperature hero (left side, shaded background)
+        String tempStr = fmt1(_snap.cur.tempC) + " C";
+        int tw = d.textWidth(tempStr, false);
+        d.fillRectShade(MARGIN_X, y - 6, tw + 20, 42, 235);
+        d.drawText(MARGIN_X + 10, y, tempStr, 2);
 
-        // The headline temperature: the hero element.
-        String tempLine = fmt1(_snap.cur.tempC) + " C   feels " + fmt1(_snap.cur.feelsC) + " C";
-        int tempBoxW = d.textWidth(tempLine, false) + 32;
-        int tempBoxH = 52;
-        d.fillRectShade(MARGIN_X - 8, y - 8, tempBoxW, tempBoxH, 230);
-        d.drawText(MARGIN_X, y, tempLine, 2);
-        y += 58;
+        // Condition (right side)
+        String condStr = String(core::weatherCodeGlyph(_snap.cur.weatherCode))
+                       + "  " + codeName(_snap.cur.weatherCode);
+        d.drawText(500, y + 6, condStr, 1);
+        y += 42;
 
-        // Humidity + wind on same line (compact grouping).
+        // Details line
         d.drawBookText(MARGIN_X, y,
-                       String("Humidity ") + String(_snap.cur.humidityPct) + " %"
-                       + "    Wind " + fmt1(_snap.cur.windKph) + " km/h");
+            String("Feels ") + fmt1(_snap.cur.feelsC) + " C"
+            + "  |  Humidity " + String(_snap.cur.humidityPct) + "%"
+            + "  |  Wind " + fmt1(_snap.cur.windKph) + " km/h");
     } else {
-        d.drawBookText(MARGIN_X, y, "Current conditions unavailable.");
+        d.drawBookText(MARGIN_X, y, "Current conditions unavailable");
     }
 
-    // --- Visual divider ---
-    int dividerY = 275;
-    d.fillRectShade(MARGIN_X, dividerY, DISPLAY_WIDTH - 2 * MARGIN_X, 3, 180);
+    // Thin divider (1px, subtle)
+    int divY = 146;
+    d.fillRectShade(MARGIN_X, divY, DISPLAY_WIDTH - 2 * MARGIN_X, 1, 180);
 
-    // --- Hourly section ---
-    y = 300;
-    d.drawTextCentered(y, "--- Today's Hourly ---", 1);
-    y += 44;
+    // Hourly section header
+    d.drawText(MARGIN_X, 156, "TODAY  -  2-HOUR FORECAST", 1);
 
-    if (_snap.hourCount > 0) {
-        for (int i = 0; i < _snap.hourCount && i < WEATHER_HOURLY_SLOTS; i++, y += 42) {
-            const core::WeatherHour &h = _snap.hours[i];
-            if (!h.valid) continue;
+    // Hourly grid: 2 rows x 6 columns
+    int colW = (DISPLAY_WIDTH - 2 * MARGIN_X) / 6;   // ~151px per column
+    int rowY = 186;   // first row baseline
 
-            // Format hour label: "06:00", "12:00", "18:00", "00:00"
-            char hourBuf[8];
-            snprintf(hourBuf, sizeof(hourBuf), "%02d:00", h.hourLocal);
+    for (int row = 0; row < 2; row++) {
+        for (int col = 0; col < 6; col++) {
+            int idx = row * 6 + col;
+            int cx = MARGIN_X + col * colW;   // column left edge
 
-            String row = String(hourBuf) + "  "
-                       + "[" + core::weatherCodeGlyph(h.weatherCode) + "]  "
-                       + fmtTenths(h.tempTenths) + " C";
-            d.drawBookText(MARGIN_X + 20, y, row);
+            if (idx < _snap.hourCount && idx < WEATHER_HOURLY_SLOTS && _snap.hours[idx].valid) {
+                const core::WeatherHour &h = _snap.hours[idx];
+
+                // Hour label
+                char hBuf[4];
+                snprintf(hBuf, sizeof(hBuf), "%02d", h.hourLocal);
+                d.drawText(cx + colW / 2 - 10, rowY, String(hBuf), 1);
+
+                // Weather glyph (centered in column)
+                String glyph = String(core::weatherCodeGlyph(h.weatherCode));
+                int gw = d.textWidth(glyph, false);
+                d.drawBookText(cx + (colW - gw) / 2, rowY + 24, glyph);
+
+                // Temperature (centered, with shaded bg)
+                String tStr = fmtTenths(h.tempTenths);
+                int ttw = d.textWidth(tStr, false);
+                d.fillRectShade(cx + (colW - ttw) / 2 - 6, rowY + 48, ttw + 12, 22, 240);
+                d.drawText(cx + (colW - ttw) / 2, rowY + 50, tStr, 1);
+            } else {
+                // Empty slot
+                d.drawText(cx + colW / 2 - 5, rowY + 24, "-", 1);
+            }
         }
-    } else {
-        d.drawBookText(MARGIN_X + 20, y, "Hourly data unavailable");
+        rowY += 120;   // next row: 120px below (70px content + 50px gap)
     }
 
-    // Footer: gesture legend.
+    // Footer
     d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }
 
-// --- Rendering: Week (7-day forecast list) ------------------------------------
+// --- Rendering: Week (7-day forecast, compact rows) --------------------------
 void WeatherApp::renderWeek() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
 
-    // --- Title bar ---
-    d.drawTextCentered(30, String("Weather - ") + String(_snap.label), 2);
-    d.drawBookText(MARGIN_X, 62, lastSyncLine());
+    // Title + sync time
+    d.drawTextCentered(22, String(_snap.label), 2);
+    if (_snap.fetchedUtc > 0) {
+        int64_t y_dummy; unsigned m_dummy, dd, hh, mm, ss;
+        core::civilFromUtc(_snap.fetchedUtc, CAL_TZ_OFFSET_SEC, y_dummy, m_dummy, dd, hh, mm, ss);
+        char timeBuf[32];
+        snprintf(timeBuf, sizeof(timeBuf), "Updated %02u:%02u  -  %d days", hh, mm, _snap.dayCount);
+        d.drawTextCentered(52, String(timeBuf), 1);
+    } else {
+        d.drawTextCentered(52, "Never fetched", 1);
+    }
 
     const bool haveData = _snap.dayCount > 0;
     if (!haveData) {
-        d.drawBookText(MARGIN_X, 240, "No forecast data - Hold -> menu -> Refresh now.");
+        d.drawTextCentered(260, "No forecast data", 2);
+        d.drawTextCentered(310, "LongHold -> menu -> Refresh now", 1);
         d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
         d.flush(true);
         return;
     }
 
-    // --- 7-day forecast section ---
-    int y = 100;
-    d.drawTextCentered(y, "--- Next 7 Days ---", 1);
-    y += 44;
+    // Section header
+    d.drawText(MARGIN_X, 80, "7-DAY FORECAST", 1);
 
-    // Day labels anchor at local midnight of the FETCH day: Open-Meteo's
-    // daily arrays start at "today" in WEATHER_TZ (UTC+8 == CAL_TZ_OFFSET_SEC),
-    // so weekday(todayStartUtc(fetchedUtc) + i*86400) labels day i correctly.
+    // Day rows
+    int y = 108;
     int64_t d0 = core::todayStartUtc(_snap.fetchedUtc, CAL_TZ_OFFSET_SEC);
-    for (int i = 0; i < _snap.dayCount && i < WEATHER_FORECAST_DAYS; i++, y += 42) {
+    for (int i = 0; i < _snap.dayCount && i < WEATHER_FORECAST_DAYS; i++, y += 36) {
         const core::WeatherDay &day = _snap.days[i];
         int wd = core::weekdayFromUtc(d0 + (int64_t)i * 86400, CAL_TZ_OFFSET_SEC);
 
-        // Better aligned forecast rows: consistent column positions.
-        // Day label (fixed width), temp range, glyph, description.
-        String row = String(WD_SHORT[wd]) + "  "
-                   + fmtTenths(day.tMin) + " .. " + fmtTenths(day.tMax) + " C"
-                   + "   [" + core::weatherCodeGlyph(day.weatherCode) + "] "
-                   + codeName(day.weatherCode);
-        d.drawBookText(MARGIN_X + 20, y, row);
+        // Highlight today (day 0) with a shaded background
+        if (i == 0) {
+            d.fillRectShade(MARGIN_X - 4, y - 6, DISPLAY_WIDTH - 2 * MARGIN_X + 8, 28, 240);
+        }
+
+        // Fixed-width day name, temps, glyph, description
+        String row = String(WD_SHORT[wd]) + "   "
+                   + fmtTenths(day.tMin) + " .. " + fmtTenths(day.tMax)
+                   + "   " + String(core::weatherCodeGlyph(day.weatherCode))
+                   + "  " + codeName(day.weatherCode);
+        d.drawBookText(MARGIN_X + 8, y, row);
     }
 
-    // Footer: gesture legend.
+    // Footer
     d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }

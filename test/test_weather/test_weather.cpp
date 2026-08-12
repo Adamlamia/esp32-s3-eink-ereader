@@ -244,11 +244,19 @@ static WeatherSnapshot mkFullSnapshot(void) {
     s.days[0] = { 251, 316, 81, true };
     s.days[1] = { 248, 329, 80, true };
     s.days[2] = { 232, 314, 81, true };
-    s.hourCount       = 4;
-    s.hours[0] = { 243, 3, 6, true };   // 06:00, 24.3°C, partly cloudy
-    s.hours[1] = { 312, 0, 12, true };  // 12:00, 31.2°C, clear sky
-    s.hours[2] = { 278, 51, 18, true }; // 18:00, 27.8°C, drizzle
-    s.hours[3] = { 251, 3, 0, true };   // 00:00, 25.1°C, partly cloudy
+    s.hourCount       = 12;
+    s.hours[0]  = { 243, 3, 0, true };    // 00:00
+    s.hours[1]  = { 238, 3, 2, true };    // 02:00
+    s.hours[2]  = { 235, 3, 4, true };    // 04:00
+    s.hours[3]  = { 243, 3, 6, true };    // 06:00
+    s.hours[4]  = { 258, 0, 8, true };    // 08:00
+    s.hours[5]  = { 289, 0, 10, true };   // 10:00
+    s.hours[6]  = { 312, 0, 12, true };   // 12:00
+    s.hours[7]  = { 325, 0, 14, true };   // 14:00
+    s.hours[8]  = { 308, 1, 16, true };   // 16:00
+    s.hours[9]  = { 278, 51, 18, true };  // 18:00
+    s.hours[10] = { 261, 3, 20, true };   // 20:00
+    s.hours[11] = { 251, 3, 22, true };   // 22:00
     s.fetchedUtc = INT64_C(1785715200);
     strncpy(s.label, "Kuala Lumpur", WEATHER_LABEL_MAX - 1);
     s.label[WEATHER_LABEL_MAX - 1] = '\0';
@@ -286,8 +294,8 @@ void test_cache_roundtrip_full(void) {
         TEST_ASSERT_EQUAL_INT(in.days[i].weatherCode, out.days[i].weatherCode);
     }
     // hourly data round-trip
-    TEST_ASSERT_EQUAL_INT(4, out.hourCount);
-    for (int i = 0; i < 4; i++) {
+    TEST_ASSERT_EQUAL_INT(12, out.hourCount);
+    for (int i = 0; i < 12; i++) {
         TEST_ASSERT_TRUE(out.hours[i].valid);
         TEST_ASSERT_EQUAL_INT(in.hours[i].hourLocal, out.hours[i].hourLocal);
         TEST_ASSERT_EQUAL_INT16(in.hours[i].tempTenths, out.hours[i].tempTenths);
@@ -438,11 +446,19 @@ void test_cache_hourly_roundtrip(void) {
     // Hourly data round-trips correctly through serialize/deserialize.
     WeatherSnapshot in;
     weatherSnapshotClear(in);
-    in.hourCount = 4;
-    in.hours[0] = { 243, 3, 6, true };
-    in.hours[1] = { 312, 0, 12, true };
-    in.hours[2] = { -52, 71, 18, true };  // negative temp
-    in.hours[3] = { 251, -1, 0, false };  // invalid slot
+    in.hourCount = 12;
+    in.hours[0]  = { 243, 3, 0, true };
+    in.hours[1]  = { 238, 3, 2, true };
+    in.hours[2]  = { 235, 3, 4, true };
+    in.hours[3]  = { 243, 3, 6, true };
+    in.hours[4]  = { 258, 0, 8, true };
+    in.hours[5]  = { 289, 0, 10, true };
+    in.hours[6]  = { 312, 0, 12, true };
+    in.hours[7]  = { 325, 0, 14, true };
+    in.hours[8]  = { -52, 71, 16, true };  // negative temp
+    in.hours[9]  = { 278, 51, 18, true };
+    in.hours[10] = { 261, 3, 20, true };
+    in.hours[11] = { 251, -1, 22, false }; // invalid slot
     
     std::string json;
     serializeWeatherCache(json, in);
@@ -450,15 +466,15 @@ void test_cache_hourly_roundtrip(void) {
     
     WeatherSnapshot out;
     TEST_ASSERT_TRUE(deserializeWeatherCache(json, out));
-    TEST_ASSERT_EQUAL_INT(4, out.hourCount);
-    TEST_ASSERT_EQUAL_INT(6, out.hours[0].hourLocal);
+    TEST_ASSERT_EQUAL_INT(12, out.hourCount);
+    TEST_ASSERT_EQUAL_INT(0, out.hours[0].hourLocal);
     TEST_ASSERT_EQUAL_INT16(243, out.hours[0].tempTenths);
     TEST_ASSERT_EQUAL_INT(3, out.hours[0].weatherCode);
     TEST_ASSERT_TRUE(out.hours[0].valid);
-    TEST_ASSERT_EQUAL_INT(12, out.hours[1].hourLocal);
-    TEST_ASSERT_EQUAL_INT16(-52, out.hours[2].tempTenths);  // negative temp preserved
-    TEST_ASSERT_EQUAL_INT(-1, out.hours[3].weatherCode);
-    TEST_ASSERT_FALSE(out.hours[3].valid);
+    TEST_ASSERT_EQUAL_INT(12, out.hours[6].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(-52, out.hours[8].tempTenths);  // negative temp preserved
+    TEST_ASSERT_EQUAL_INT(-1, out.hours[11].weatherCode);
+    TEST_ASSERT_FALSE(out.hours[11].valid);
 }
 
 void test_cache_hourly_sanitised(void) {
@@ -474,27 +490,60 @@ void test_cache_hourly_sanitised(void) {
 }
 
 void test_parse_hourly_data(void) {
-    // Parse hourly data from a response with 48 hours of data.
+    // Parse hourly data from a response with 24+ hours of data (full day).
+    // The parser should extract 12 even-hour slots: 00,02,04,06,08,10,12,14,16,18,20,22.
     WeatherSnapshot s;
     TEST_ASSERT_TRUE(parseOpenMeteo(
         "{\"current\":{\"temperature_2m\":26.0},"
         "\"daily\":{\"weather_code\":[1],\"temperature_2m_max\":[30.0],\"temperature_2m_min\":[24.0]},"
-        "\"hourly\":{\"time\":[\"2026-08-07T00:00\",\"2026-08-07T06:00\",\"2026-08-07T12:00\","
-        "\"2026-08-07T18:00\",\"2026-08-08T00:00\"],"
-        "\"temperature_2m\":[25.0,24.3,31.2,27.8,25.1],"
-        "\"weather_code\":[3,3,0,51,3]}}", s));
-    TEST_ASSERT_EQUAL_INT(4, s.hourCount);
-    TEST_ASSERT_EQUAL_INT(6, s.hours[0].hourLocal);
-    TEST_ASSERT_EQUAL_INT16(243, s.hours[0].tempTenths);
+        "\"hourly\":{\"time\":["
+        "\"2026-08-07T00:00\",\"2026-08-07T01:00\",\"2026-08-07T02:00\","
+        "\"2026-08-07T03:00\",\"2026-08-07T04:00\",\"2026-08-07T05:00\","
+        "\"2026-08-07T06:00\",\"2026-08-07T07:00\",\"2026-08-07T08:00\","
+        "\"2026-08-07T09:00\",\"2026-08-07T10:00\",\"2026-08-07T11:00\","
+        "\"2026-08-07T12:00\",\"2026-08-07T13:00\",\"2026-08-07T14:00\","
+        "\"2026-08-07T15:00\",\"2026-08-07T16:00\",\"2026-08-07T17:00\","
+        "\"2026-08-07T18:00\",\"2026-08-07T19:00\",\"2026-08-07T20:00\","
+        "\"2026-08-07T21:00\",\"2026-08-07T22:00\",\"2026-08-07T23:00\"],"
+        "\"temperature_2m\":["
+        "25.0,24.8,24.3,24.0,23.5,23.8,"
+        "24.3,25.0,25.8,27.0,28.9,30.0,"
+        "31.2,32.0,32.5,31.8,30.8,29.0,"
+        "27.8,26.5,26.1,25.5,25.1,24.8],"
+        "\"weather_code\":["
+        "3,3,3,3,3,3,"
+        "3,3,0,0,0,0,"
+        "0,0,0,1,1,1,"
+        "51,51,3,3,3,3]}}", s));
+    TEST_ASSERT_EQUAL_INT(12, s.hourCount);
+    // slot 0: hour 00, 25.0°C, code 3
+    TEST_ASSERT_EQUAL_INT(0, s.hours[0].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(250, s.hours[0].tempTenths);
     TEST_ASSERT_EQUAL_INT(3, s.hours[0].weatherCode);
     TEST_ASSERT_TRUE(s.hours[0].valid);
-    TEST_ASSERT_EQUAL_INT(12, s.hours[1].hourLocal);
-    TEST_ASSERT_EQUAL_INT16(312, s.hours[1].tempTenths);
-    TEST_ASSERT_EQUAL_INT(0, s.hours[1].weatherCode);
-    TEST_ASSERT_EQUAL_INT(18, s.hours[2].hourLocal);
-    TEST_ASSERT_EQUAL_INT16(278, s.hours[2].tempTenths);
-    TEST_ASSERT_EQUAL_INT(0, s.hours[3].hourLocal);
-    TEST_ASSERT_EQUAL_INT16(251, s.hours[3].tempTenths);  // last T00:00 (next day)
+    // slot 1: hour 02, 24.3°C, code 3
+    TEST_ASSERT_EQUAL_INT(2, s.hours[1].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(243, s.hours[1].tempTenths);
+    // slot 3: hour 06, 24.3°C, code 3
+    TEST_ASSERT_EQUAL_INT(6, s.hours[3].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(243, s.hours[3].tempTenths);
+    // slot 4: hour 08, 25.8°C, code 0
+    TEST_ASSERT_EQUAL_INT(8, s.hours[4].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(258, s.hours[4].tempTenths);
+    TEST_ASSERT_EQUAL_INT(0, s.hours[4].weatherCode);
+    // slot 6: hour 12, 31.2°C, code 0
+    TEST_ASSERT_EQUAL_INT(12, s.hours[6].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(312, s.hours[6].tempTenths);
+    // slot 9: hour 18, 27.8°C, code 51
+    TEST_ASSERT_EQUAL_INT(18, s.hours[9].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(278, s.hours[9].tempTenths);
+    TEST_ASSERT_EQUAL_INT(51, s.hours[9].weatherCode);
+    // slot 10: hour 20, 26.1°C, code 3
+    TEST_ASSERT_EQUAL_INT(20, s.hours[10].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(261, s.hours[10].tempTenths);
+    // slot 11: hour 22, 25.1°C, code 3
+    TEST_ASSERT_EQUAL_INT(22, s.hours[11].hourLocal);
+    TEST_ASSERT_EQUAL_INT16(251, s.hours[11].tempTenths);
 }
 
 // ===========================================================================
@@ -514,7 +563,6 @@ void test_url_kl_defaults(void) {
     TEST_ASSERT_NOT_NULL(strstr(url, "current=temperature_2m"));
     TEST_ASSERT_NOT_NULL(strstr(url, "daily=weather_code"));
     TEST_ASSERT_NOT_NULL(strstr(url, "hourly=temperature_2m"));
-    TEST_ASSERT_NOT_NULL(strstr(url, "forecast_hours=48"));
 }
 
 // NEGATIVE TEST: a too-small caller buffer must yield an EMPTY string (loud

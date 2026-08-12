@@ -75,7 +75,7 @@ private:
 
     // --- Rendering ---
     void renderCurrent();             // dispatch on _view
-    void renderToday();               // current conditions + 4-slot hourly
+    void renderToday();               // current conditions + 12-slot 2-hour grid
     void renderWeek();                // 7-day forecast list
     void renderMenu();
 
