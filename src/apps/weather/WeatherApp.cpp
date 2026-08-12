@@ -130,9 +130,8 @@ void WeatherApp::onButton(ButtonEvent ev) {
 
     // --- Main screen ---
     if (ev == ButtonEvent::Tap) {
-        runSync();          // manual refresh: ALWAYS allowed (battery floor is
-                            // AUTO-only); portal/battery errors surface as a
-                            // readable message from the sync itself.
+        // No-op on main screen: tap does nothing (the menu has Refresh now).
+        // This prevents accidental refreshes and makes the gesture map predictable.
     } else if (ev == ButtonEvent::MediumHold) {
         // Deliberate no-op (documented in the header): single-screen app with
         // nothing to scroll or cycle. Ignored rather than repurposed so the
@@ -149,8 +148,8 @@ void WeatherApp::loadCache() {
 }
 
 String WeatherApp::lastSyncLine() const {
-    if (_snap.fetchedUtc <= 0)
-        return "Never fetched - Tap to refresh";
+    if (_snap.fetchedUtc == 0)
+        return "Never fetched - Hold -> menu -> Refresh now";
     return String("Last fetch: ") + fmtDateTime(_snap.fetchedUtc)
          + "   " + String(_snap.dayCount) + " day(s) cached";
 }
@@ -168,9 +167,9 @@ void WeatherApp::renderMain() {
     if (!haveData) {
         // Empty state: never synced (or every load failed).
         // Center the message vertically for better visual balance.
-        d.drawBookText(MARGIN_X, 240, "No weather yet - Tap to refresh.");
-        d.drawBookText(MARGIN_X, 272, "Or Hold -> menu -> Refresh now.");
-        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=refresh   Hold=menu");
+        d.drawBookText(MARGIN_X, 240, "No weather yet - Hold -> menu -> Refresh now.");
+        d.drawBookText(MARGIN_X, 272, "Or wait for the next automatic fetch.");
+        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Hold=menu");
         d.flush(true);
         return;
     }
@@ -204,12 +203,12 @@ void WeatherApp::renderMain() {
 
     // --- Visual divider between current and forecast sections ---
     // A thin shaded band creates clear separation without heavy ink.
-    int dividerY = 260;
+    int dividerY = 275;
     d.fillRectShade(MARGIN_X, dividerY, DISPLAY_WIDTH - 2 * MARGIN_X, 3, 180);
 
     // --- 3-day forecast section ---
-    // Better vertical balance: forecast starts at y=284 (was 320).
-    y = 284;
+    // Better vertical balance: forecast starts at y=300.
+    y = 300;
     d.drawTextCentered(y, "--- Next 3 Days ---", 1);
     y += 44;
 
@@ -231,7 +230,7 @@ void WeatherApp::renderMain() {
     }
 
     // Footer: gesture legend.
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=refresh   Hold=menu");
+    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Hold=menu");
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }
 

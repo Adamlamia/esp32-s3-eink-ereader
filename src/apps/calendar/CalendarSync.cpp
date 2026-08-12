@@ -110,12 +110,11 @@ CalendarSyncResult CalendarSync::runInternal() {
     for (int fi = 0; fi < feedCount; fi++) {
         bool feedOk = false;
         WiFiClientSecure client;
-        // P0-3: TLS CA validation. Apply the CA cert for calendar.google.com;
-        // if no cert is available, fall back to setInsecure() with a warning.
-        if (!wifiSessionApplyCa(client, "calendar.google.com", "CalSync")) {
-            client.setInsecure();  // fallback with warning
-            Serial.println("[CalSync] WARNING: TLS without CA validation (no cert for host)");
-        }
+        // TODO(TLS-GOOGLE): GTS Root R1 cert chain validation fails on ESP32 mbedTLS
+        // for calendar.google.com intermediate certs. Revert to setInsecure() until
+        // the cert chain is debugged. Weather/GitHub/Todo use ISRG Root X1 which works.
+        client.setInsecure();
+        Serial.println("[CalSync] TLS: setInsecure() (GTS Root R1 chain not yet working on ESP32)");
         HTTPClient http;
         http.setConnectTimeout(SYNC_HTTP_CONNECT_MS);
         http.setTimeout(SYNC_HTTP_TIMEOUT_MS);

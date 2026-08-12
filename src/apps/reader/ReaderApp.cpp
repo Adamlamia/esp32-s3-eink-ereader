@@ -54,6 +54,9 @@ void ReaderApp::onButton(ButtonEvent ev) {
     switch (_screen) {
         case Screen::Library:
             if (ev == ButtonEvent::Tap)           moveLibrarySelection(tapCount());
+            else if (ev == ButtonEvent::MediumHold) {
+                if (_ctx.manager) _ctx.manager->requestHome();
+            }
             else if (ev == ButtonEvent::LongHold) librarySelect();
             break;
 
@@ -159,7 +162,7 @@ void ReaderApp::showLibraryScreen() {
     }
 
     d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 40,
-        "Tap = move    Hold = open / toggle");
+        "Tap=move  MidHold=home  Hold=open");
     d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16,
         "Add books: join '" AP_SSID "' -> http://" WEB_HOSTNAME ".local -> drop .txt");
     d.flush(true);
