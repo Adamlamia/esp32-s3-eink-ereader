@@ -73,17 +73,12 @@ void AppManager::loop() {
     // Let the active app do periodic work (network polling, timers, etc.).
     if (_state == State::AppActive && _activeApp) {
         _activeApp->onLoop(millis());
-    } else if (_state == State::Launcher) {
-        // Background tick: let apps with scheduled work run even from the launcher.
-        // Rate-limited to once per second to avoid excessive CPU use.
-        uint32_t now = millis();
-        if (now - _lastLauncherTickMs >= 1000UL) {
-            _lastLauncherTickMs = now;
-            for (int i = 0; i < _appCount; i++) {
-                _apps[i]->onLoop(now);
-            }
-        }
     }
+    // NOTE: removed launcher background tick (P0-2) — it was causing CalendarApp
+    // to run blocking NTP/sync operations every second from the launcher, which
+    // triggered unwanted sync attempts on every button press. The 6 AM daily sync
+    // will only trigger when the user opens the Calendar app, or via timer wake
+    // from light sleep (handled by sleepWakeupSec()).
 
     systemTasks(millis());
 }

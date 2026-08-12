@@ -1,0 +1,107 @@
+{
+  "nodes": [
+    {
+      "id": "title",
+      "type": "text",
+      "text": "# App Navigation Flow\nButton event routing through the firmware",
+      "x": 0, "y": -350, "width": 400, "height": 80
+    },
+    {
+      "id": "gpio",
+      "type": "text",
+      "text": "## GPIO Polling\nAppManager polls GPIO 21 (and 9/46 when wired)\n30ms debounce",
+      "x": -300, "y": -220, "width": 250, "height": 100,
+      "color": "4"
+    },
+    {
+      "id": "classify",
+      "type": "text",
+      "text": "## ButtonClassify\nHold-duration bands:\n- Tap ≤350ms\n- MediumHold 350-750ms\n- LongHold ≥750ms",
+      "x": 50, "y": -220, "width": 250, "height": 120,
+      "color": "6"
+    },
+    {
+      "id": "appmanager",
+      "type": "text",
+      "text": "## AppManager\nRoutes ButtonEvent → active App\nManages sleep/wake\nHandles returnToLauncher()",
+      "x": -120, "y": -50, "width": 280, "height": 130,
+      "color": "3"
+    },
+    {
+      "id": "reader_flow",
+      "type": "text",
+      "text": "## Reading Mode\n- **Tap** → next page (instant)\n- **MediumHold** → prev page\n- **LongHold** → open menu",
+      "x": -450, "y": 150, "width": 250, "height": 130,
+      "color": "1"
+    },
+    {
+      "id": "menu_flow",
+      "type": "text",
+      "text": "## Menu Mode\n- **Tap** → move highlight (wraps)\n- **LongHold** → select item\n  - 0: Resume\n  - 1: Library\n  - 2: Bookmark\n  - 3: Wi-Fi",
+      "x": -150, "y": 150, "width": 250, "height": 160,
+      "color": "2"
+    },
+    {
+      "id": "library_flow",
+      "type": "text",
+      "text": "## Library Mode\n- **Tap** → move highlight (wraps)\n- **LongHold** → open book / toggle Wi-Fi\n- Font size toggle in virtual row",
+      "x": 150, "y": 150, "width": 250, "height": 140,
+      "color": "5"
+    },
+    {
+      "id": "sleep",
+      "type": "text",
+      "text": "## Sleep / Wake\n- Light sleep after 120s idle\n- Wake on button GPIO\n- Apps can set sleepWakeupSec()\n- E-ink retains last image (zero power)",
+      "x": -450, "y": 350, "width": 280, "height": 140,
+      "color": "4"
+    },
+    {
+      "id": "wifi_session",
+      "type": "text",
+      "text": "## WiFi Session\n- RAII guard pattern\n- Portal-guarded (shared window)\n- NTP sync for clock validity\n- Auto-off after 10 min",
+      "x": -100, "y": 370, "width": 260, "height": 130,
+      "color": "6"
+    },
+    {
+      "id": "two_btn",
+      "type": "text",
+      "text": "## Two-Button Nav (Planned)\n- **Button A** (GPIO 9): forward/confirm\n- **Button B** (GPIO 46): back/home\n- Home = returnToLauncher() global\n- Hold B ≥500ms = jump to launcher",
+      "x": 220, "y": 370, "width": 260, "height": 140,
+      "color": "2"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1", "fromNode": "gpio", "toNode": "classify",
+      "label": "raw press"
+    },
+    {
+      "id": "e2", "fromNode": "classify", "toNode": "appmanager",
+      "label": "ButtonEvent"
+    },
+    {
+      "id": "e3", "fromNode": "appmanager", "toNode": "reader_flow",
+      "label": "reading"
+    },
+    {
+      "id": "e4", "fromNode": "appmanager", "toNode": "menu_flow",
+      "label": "menu"
+    },
+    {
+      "id": "e5", "fromNode": "appmanager", "toNode": "library_flow",
+      "label": "library"
+    },
+    {
+      "id": "e6", "fromNode": "reader_flow", "toNode": "sleep",
+      "label": "idle timeout"
+    },
+    {
+      "id": "e7", "fromNode": "menu_flow", "toNode": "wifi_session",
+      "label": "Wi-Fi toggle"
+    },
+    {
+      "id": "e8", "fromNode": "appmanager", "toNode": "two_btn",
+      "label": "future"
+    }
+  ]
+}

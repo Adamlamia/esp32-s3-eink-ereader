@@ -5,6 +5,8 @@
 //  Handles the nightly sync of voice recordings to the backend.
 //  Reuses WifiSession for network operations.
 // ===========================================================================
+#include "app/App.h"
+#include "app/SystemContext.h"
 #include "app/WifiSession.h"
 #include "core/VoiceModel.h"
 #include "storage/BookStorage.h"

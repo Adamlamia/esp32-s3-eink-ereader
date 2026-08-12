@@ -1,0 +1,21 @@
+filters:
+  and:
+    - file.hasTag("architecture")
+    - 'file.ext == "md"'
+
+properties:
+  title:
+    displayName: Title
+
+views:
+  - type: table
+    name: "Architecture Docs"
+    order:
+      - file.name
+      - title
+      - status
+
+  - type: list
+    name: "Architecture Index"
+    order:
+      - file.name

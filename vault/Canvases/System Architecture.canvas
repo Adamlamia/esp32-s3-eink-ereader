@@ -1,0 +1,161 @@
+{
+  "nodes": [
+    {
+      "id": "title",
+      "type": "text",
+      "text": "# System Architecture\n**ESP32-S3 E-Ink E-Reader v0.2.0**\nLILYGO T5 4.7\" S3 · 960×540 · 16-grey",
+      "x": 0, "y": -400, "width": 500, "height": 120
+    },
+    {
+      "id": "hw",
+      "type": "text",
+      "text": "## Hardware (ESP32-S3)\n- LilyGo-EPD47 display driver\n- SPI microSD (GPIO 11/15/16/42)\n- I2S INMP441 mic (GPIO 39/45/48)\n- ADC2 battery (GPIO 14)\n- Wi-Fi + BLE\n- 16MB flash · 8MB PSRAM (OPI)",
+      "x": -500, "y": 600, "width": 320, "height": 220,
+      "color": "4"
+    },
+    {
+      "id": "platform",
+      "type": "text",
+      "text": "## Platform Services\n- **DisplayManager** — EPD rendering, fonts\n- **BookStorage** — SD + LittleFS abstraction\n- **WebPortal** — ESPAsyncWebServer (book upload)\n- **UsbMassStorage** — TinyUSB MSC (optional)\n- **TextReader** — pagination + rendering",
+      "x": -500, "y": 250, "width": 320, "height": 220,
+      "color": "5"
+    },
+    {
+      "id": "core",
+      "type": "text",
+      "text": "## Core Logic (src/core/) — HAL-free\nHeader-only · namespace core · No heap\n\n**Calendar:** IcsParser · CalendarDate · CalendarEvent · SyncSchedule\n**Weather:** OpenMeteo\n**QR:** Emvco · QrPayload\n**Todo:** TodoModel\n**Voice:** VoiceModel\n**Agenda:** AgendaMerge\n**Reader:** Paginator · PageLayout · TextTransform · Format\n**System:** BatteryMath · ButtonClassify · BookmarkStore · PathValidation · RefsIndex · GithubModel",
+      "x": -150, "y": 200, "width": 500, "height": 320,
+      "color": "6"
+    },
+    {
+      "id": "framework",
+      "type": "text",
+      "text": "## App Framework (src/app/)\n- **App** — abstract base (onEnter/onExit/onButton/onLoop)\n- **AppManager** — lifecycle, button decode, sleep/wake\n- **SystemContext** — DI container (display, storage, wifi)\n- **AppRegistry** — one-line-per-app registration\n- **WifiSession** — RAII WiFi guard, portal-guard, NTP",
+      "x": -150, "y": -50, "width": 500, "height": 200,
+      "color": "3"
+    },
+    {
+      "id": "reader",
+      "type": "file",
+      "file": "Features/Reader.md",
+      "x": -600, "y": -250, "width": 200, "height": 100
+    },
+    {
+      "id": "calendar",
+      "type": "file",
+      "file": "Features/Calendar.md",
+      "x": -370, "y": -250, "width": 200, "height": 100
+    },
+    {
+      "id": "weather",
+      "type": "file",
+      "file": "Features/Weather.md",
+      "x": -140, "y": -250, "width": 200, "height": 100
+    },
+    {
+      "id": "qr",
+      "type": "file",
+      "file": "Features/QR Toolkit.md",
+      "x": 90, "y": -250, "width": 200, "height": 100
+    },
+    {
+      "id": "todo",
+      "type": "file",
+      "file": "Features/Todo.md",
+      "x": 320, "y": -250, "width": 200, "height": 100
+    },
+    {
+      "id": "agenda",
+      "type": "file",
+      "file": "Features/Agenda.md",
+      "x": 550, "y": -250, "width": 200, "height": 100
+    },
+    {
+      "id": "devcomp",
+      "type": "file",
+      "file": "Features/Dev Companion.md",
+      "x": -370, "y": -100, "width": 200, "height": 100
+    },
+    {
+      "id": "voice",
+      "type": "file",
+      "file": "Features/Voice Journal.md",
+      "x": -140, "y": -100, "width": 200, "height": 100
+    },
+    {
+      "id": "tests",
+      "type": "text",
+      "text": "## Native Tests (test/)\n122+ passing · Unity framework\n\nHardware-free · Deterministic · Host-compiled\nTests include src/core/*.h directly\n\n`pio test -e native`",
+      "x": 400, "y": 250, "width": 300, "height": 180,
+      "color": "1"
+    },
+    {
+      "id": "secrets",
+      "type": "text",
+      "text": "## Secrets (src/secrets.h)\n🔒 Git-ignored — never commit\n\nWiFi creds · ICS URLs · Weather coords\nQR payloads · GitHub PAT · Voice backend\n\nFirmware builds without it (graceful empty state)",
+      "x": 400, "y": 500, "width": 300, "height": 180,
+      "color": "2"
+    },
+    {
+      "id": "nav",
+      "type": "text",
+      "text": "## Button Navigation\n**Single-button (GPIO 21):**\n- Tap (≤350ms) → next page\n- Medium hold (350-750ms) → prev page\n- Long hold (≥750ms) → menu\n\n**Two-button (planned):**\n- Button A (GPIO 9) → forward\n- Button B (GPIO 46) → back/home",
+      "x": -500, "y": -50, "width": 300, "height": 220,
+      "color": "5"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1", "fromNode": "reader", "toNode": "framework",
+      "label": "inherits App"
+    },
+    {
+      "id": "e2", "fromNode": "calendar", "toNode": "framework",
+      "label": "inherits App"
+    },
+    {
+      "id": "e3", "fromNode": "weather", "toNode": "framework",
+      "label": "inherits App"
+    },
+    {
+      "id": "e4", "fromNode": "qr", "toNode": "framework",
+      "label": "inherits App"
+    },
+    {
+      "id": "e5", "fromNode": "todo", "toNode": "framework",
+      "label": "inherits App"
+    },
+    {
+      "id": "e6", "fromNode": "agenda", "toNode": "framework",
+      "label": "inherits App"
+    },
+    {
+      "id": "e7", "fromNode": "devcomp", "toNode": "framework",
+      "label": "inherits App"
+    },
+    {
+      "id": "e8", "fromNode": "voice", "toNode": "framework",
+      "label": "inherits App"
+    },
+    {
+      "id": "e9", "fromNode": "framework", "toNode": "core",
+      "label": "delegates to"
+    },
+    {
+      "id": "e10", "fromNode": "core", "toNode": "platform",
+      "label": "no dependency"
+    },
+    {
+      "id": "e11", "fromNode": "platform", "toNode": "hw",
+      "label": "drives"
+    },
+    {
+      "id": "e12", "fromNode": "core", "toNode": "tests",
+      "label": "tested by"
+    },
+    {
+      "id": "e13", "fromNode": "secrets", "toNode": "framework",
+      "label": "configures"
+    }
+  ]
+}

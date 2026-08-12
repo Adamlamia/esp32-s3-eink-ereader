@@ -20,7 +20,7 @@
 #include "../apps/weather/WeatherApp.h"     // feature/weather (WTH·R1)
 #include "../apps/qr/QrApp.h"             // feature/qr (QR-R1)
 #include "../apps/devcompanion/DevCompanionApp.h"  // feature/devcompanion (DEV·R1)
-#include "../apps/voicejournal/VoiceJournalApp.h"  // feature/voicejournal (VJ·R1)
+#include "../apps/voicejournal/VoiceJournalApp.h"  // feature/voicejournal (VJ.R1)
 // DEFERRED (2026-08-02): Todo is built, tested and merged but DISABLED in the
 // launcher pending a backend decision. Google Tasks (the product) exposes NO
 // ICS/CalDAV feed — only an OAuth2 JSON API — so the current "Tasks Google
@@ -39,7 +39,7 @@ inline void registerAllApps(AppManager &mgr, SystemContext &ctx) {
     mgr.addApp(new WeatherApp(ctx));            // feature/weather (WTH·R1)
     mgr.addApp(new QrApp(ctx));               // feature/qr (QR-R1)
     mgr.addApp(new DevCompanionApp(ctx));      // feature/devcompanion (DEV·R1)
-    mgr.addApp(new VoiceJournalApp(ctx));      // feature/voicejournal (VJ·R1)
+    mgr.addApp(new apps::VoiceJournalApp(ctx));      // feature/voicejournal (VJ.R1)
     // mgr.addApp(new TodoApp(ctx));           // feature/todo (TODO-R1) — DEFERRED, see note above
     // mgr.addApp(new KanbanApp(ctx));          // future: feature/kanban
     // mgr.addApp(new HabitsApp(ctx));          // future: feature/habits

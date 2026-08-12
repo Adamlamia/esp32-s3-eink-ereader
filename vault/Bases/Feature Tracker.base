@@ -1,0 +1,53 @@
+filters:
+  and:
+    - file.hasTag("feature")
+    - 'file.ext == "md"'
+
+formulas:
+  status_icon: 'if(status == "active", "✅", if(status == "deferred", "⏸️", if(status == "planned", "🔲", "❓")))'
+  batch_label: 'if(batch == "1", "Batch 1", if(batch == "2", "Batch 2", "Core"))'
+
+properties:
+  status:
+    displayName: Status
+  batch:
+    displayName: Batch
+  formula.status_icon:
+    displayName: ""
+  formula.batch_label:
+    displayName: Batch
+
+views:
+  - type: table
+    name: "All Features"
+    order:
+      - formula.status_icon
+      - file.name
+      - formula.batch_label
+      - status
+    groupBy:
+      property: status
+      direction: ASC
+
+  - type: cards
+    name: "Active Apps"
+    filters:
+      and:
+        - 'status == "active"'
+    order:
+      - file.name
+      - status
+      - batch
+
+  - type: table
+    name: "Build Order"
+    filters:
+      and:
+        - 'status != "active"'
+    order:
+      - file.name
+      - formula.batch_label
+      - status
+    groupBy:
+      property: formula.batch_label
+      direction: ASC

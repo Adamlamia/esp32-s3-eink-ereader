@@ -1,0 +1,21 @@
+filters:
+  and:
+    - file.hasTag("development")
+    - 'file.ext == "md"'
+
+properties:
+  title:
+    displayName: Title
+
+views:
+  - type: table
+    name: "Dev Reference"
+    order:
+      - file.name
+      - title
+      - status
+
+  - type: list
+    name: "Dev Index"
+    order:
+      - file.name

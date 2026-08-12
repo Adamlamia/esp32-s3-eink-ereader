@@ -1,0 +1,28 @@
+filters:
+  and:
+    - file.hasTag("hardware")
+    - 'file.ext == "md"'
+
+formulas:
+  has_pins: 'if(file.hasTag("gpio") || file.hasTag("pins"), "Yes", "—")'
+
+properties:
+  board:
+    displayName: Board
+  formula.has_pins:
+    displayName: Has Pin Map
+
+views:
+  - type: table
+    name: "Hardware Reference"
+    order:
+      - file.name
+      - board
+      - formula.has_pins
+      - status
+
+  - type: cards
+    name: "Hardware Cards"
+    order:
+      - file.name
+      - board

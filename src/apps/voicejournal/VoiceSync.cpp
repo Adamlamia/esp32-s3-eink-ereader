@@ -5,7 +5,9 @@
 #include "app/WifiSession.h"
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
-#include <sys/stat.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
 
 namespace apps {
 
@@ -16,7 +18,7 @@ VoiceSync::VoiceSync(SystemContext &ctx)
 
 bool VoiceSync::syncAll() {
     // Read queue file
-    std::string queueContent;
+    String queueContent;
     File f = _storage.fs().open(VOICE_QUEUE_FILE, "r");
     if (!f) {
         return false;
@@ -26,18 +28,18 @@ bool VoiceSync::syncAll() {
     
     // Parse queue
     core::VoiceEntry entries[16];
-    int n = core::readVoiceQueue(queueContent, entries, 16);
+    int n = core::readVoiceQueue(queueContent.c_str(), entries, 16);
     
     if (n <= 0) {
         return true; // Nothing to sync
     }
     
     // Try to get backend URL from secrets.h
-    #ifdef VOICE_BACKEND_URL
-        const char *backendUrl = VOICE_BACKEND_URL;
-    #else
-        const char *backendUrl = "http://localhost:8000/voice";
-    #endif
+#ifdef VOICE_BACKEND_URL
+    const char *backendUrl = VOICE_BACKEND_URL;
+#else
+    const char *backendUrl = "http://localhost:8000/voice";
+#endif
     
     // For each entry, send to backend
     bool success = true;
@@ -104,11 +106,11 @@ bool VoiceSync::sendWavToBackend(const char *wavPath, core::VoiceEntry &entry) {
     
     // Create HTTP client
     HTTPClient http;
-    #ifdef VOICE_BACKEND_URL
-        http.begin(VOICE_BACKEND_URL);
-    #else
-        http.begin("http://localhost:8000/voice");
-    #endif
+#ifdef VOICE_BACKEND_URL
+    http.begin(VOICE_BACKEND_URL);
+#else
+    http.begin("http://localhost:8000/voice");
+#endif
     
     // Set headers
     http.addHeader("Content-Type", "audio/wav");

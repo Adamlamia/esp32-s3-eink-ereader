@@ -83,7 +83,6 @@ private:
     uint32_t       _bootMs         = 0;
     uint32_t       _lastBattMs     = 0;
     bool           _webUserManaged = false; // true once user toggles Wi-Fi by hand
-    uint32_t       _lastLauncherTickMs = 0; // rate-limiter for launcher background tick
 
     // --- Agenda (split-view launcher, AGD·R1) ---
     // Refreshed on every drawLauncher() (boot + return-to-launcher + tap):
