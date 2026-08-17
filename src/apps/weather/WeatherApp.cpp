@@ -163,53 +163,49 @@ void WeatherApp::renderCurrent() {
 }
 
 // --- Rendering: Today (current conditions + 12-slot 2-hour hourly grid) ------
+// Spacing model: every y value is a BASELINE (text sits on it, ascender above,
+// descender below).  FiraSans lineHeightFor(1)=44 (~30px ascender + ~8px gap).
+// drawText fontSize param is a no-op (always FiraSans), so visual hierarchy
+// comes from baseline spacing and font choice (drawText=FiraSans vs
+// drawBookText=Georgia), not from font size.
 void WeatherApp::renderToday() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
 
-    // --- Title + sync time (well separated to avoid overlap) ---
-    d.drawTextCentered(24, String(_snap.label), 2);     // fontSize=2 ~40px -> 24..64
+    // --- Title + sync time (baselines matched to CalendarApp convention) ---
+    d.drawTextCentered(48, String(_snap.label), 1);     // title baseline 48
     if (_snap.fetchedUtc > 0) {
         int64_t y_dummy; unsigned m_dummy, dd, hh, mm, ss;
         core::civilFromUtc(_snap.fetchedUtc, CAL_TZ_OFFSET_SEC, y_dummy, m_dummy, dd, hh, mm, ss);
         char timeBuf[16];
         snprintf(timeBuf, sizeof(timeBuf), "Updated %02u:%02u", hh, mm);
-        d.drawTextCentered(72, String(timeBuf), 1);     // fontSize=1 ~20px -> 72..92
+        d.drawTextCentered(80, String(timeBuf), 1);     // sync baseline 80
     } else {
-        d.drawTextCentered(72, "Never fetched", 1);
+        d.drawTextCentered(80, "Never fetched", 1);
     }
 
     const bool haveData = _snap.cur.valid || _snap.hourCount > 0;
     if (!haveData) {
-        d.drawTextCentered(260, "No weather yet", 2);
-        d.drawTextCentered(310, "LongHold -> menu -> Refresh now", 1);
-        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 20, "Tap=view   M-Hold=home   Hold=menu");
+        d.drawTextCentered(260, "No weather yet", 1);
+        d.drawTextCentered(294, "LongHold -> menu -> Refresh now", 1);
+        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
         d.flush(true);
         return;
     }
 
-    // --- Current conditions block ---
-    int y = 100;
+    // --- Current conditions (two-column: temp left, condition right) ---
+    int y = 122;   // baseline for temp
     if (_snap.cur.valid) {
-        // Temperature hero (left side, shaded background)
         String tempStr = fmt1(_snap.cur.tempC) + " C";
-        int tw = d.textWidth(tempStr, false);
-        d.fillRectShade(MARGIN_X, y - 4, tw + 24, 44, 230);
-        d.drawText(MARGIN_X + 12, y, tempStr, 2);       // fontSize=2 ~40px -> y..y+40
+        d.drawText(MARGIN_X, y, tempStr, 1);
 
-        // Condition badge (right side, shaded badge for icon-like appearance)
+        // Condition: glyph (Georgia) + description (Georgia) on right side
         String glyph = String(core::weatherCodeGlyph(_snap.cur.weatherCode));
         String desc  = String(codeName(_snap.cur.weatherCode));
-        int gw = d.textWidth(glyph, false);
-        int badgeW = gw + 20;
-        int badgeX = 480;
-        d.fillRectShade(badgeX, y + 6, badgeW, 28, 210);   // darker badge bg
-        d.drawBookText(badgeX + 10, y + 10, glyph);        // glyph inside badge
-        d.drawBookText(badgeX + badgeW + 10, y + 10, desc); // description next to badge
+        d.drawBookText(500, y, glyph + "  " + desc);
 
-        y += 48;   // below the temp hero
-
-        // Details line
+        // Details line (one line below: ~34px advance)
+        y += 34;
         d.drawBookText(MARGIN_X, y,
             String("Feels ") + fmt1(_snap.cur.feelsC) + " C"
             + "  |  Humidity " + String(_snap.cur.humidityPct) + "%"
@@ -218,12 +214,14 @@ void WeatherApp::renderToday() {
         d.drawBookText(MARGIN_X, y, "Current conditions unavailable");
     }
 
-    // --- Hourly section header (no divider — clean transition) ---
-    d.drawText(MARGIN_X, 170, "TODAY  -  2-HOUR FORECAST", 1);
+    // --- Hourly section header ---
+    d.drawText(MARGIN_X, 200, "TODAY - 2-HOUR FORECAST", 1);
 
     // --- Hourly grid: 2 rows x 6 columns ---
+    // Each cell has 3 stacked elements at 30px baseline intervals:
+    //   hour label, weather glyph (Georgia for visual distinction), temp.
     int colW = (DISPLAY_WIDTH - 2 * MARGIN_X) / 6;   // ~151px per column
-    int rowY = 200;   // first row baseline
+    int rowY = 238;   // first row: hour baseline
 
     for (int row = 0; row < 2; row++) {
         for (int col = 0; col < 6; col++) {
@@ -234,35 +232,30 @@ void WeatherApp::renderToday() {
             if (idx < _snap.hourCount && idx < WEATHER_HOURLY_SLOTS && _snap.hours[idx].valid) {
                 const core::WeatherHour &h = _snap.hours[idx];
 
-                // Hour label (centered in column)
+                // Hour label (FiraSans)
                 char hBuf[4];
                 snprintf(hBuf, sizeof(hBuf), "%02d", h.hourLocal);
                 int hw = d.textWidth(String(hBuf), false);
                 d.drawText(centerX - hw / 2, rowY, String(hBuf), 1);
 
-                // Weather glyph badge (shaded background = icon-like)
+                // Weather glyph (Georgia — visually distinct from FiraSans numbers)
                 String glyph = String(core::weatherCodeGlyph(h.weatherCode));
-                int gw = d.textWidth(glyph, false);
-                int badgeW = gw + 18;
-                int badgeX = centerX - badgeW / 2;
-                d.fillRectShade(badgeX, rowY + 30, badgeW, 26, 210);
-                d.drawBookText(centerX - gw / 2, rowY + 34, glyph);
+                int gw = d.textWidth(glyph, true);
+                d.drawBookText(centerX - gw / 2, rowY + 30, glyph);
 
-                // Temperature (centered, with light shaded bg)
+                // Temperature (FiraSans)
                 String tStr = fmtTenths(h.tempTenths);
                 int ttw = d.textWidth(tStr, false);
-                d.fillRectShade(centerX - ttw / 2 - 8, rowY + 64, ttw + 16, 24, 240);
-                d.drawText(centerX - ttw / 2, rowY + 66, tStr, 1);
+                d.drawText(centerX - ttw / 2, rowY + 60, tStr, 1);
             } else {
-                // Empty slot
-                d.drawText(centerX - 4, rowY + 34, "-", 1);
+                d.drawText(centerX - 4, rowY + 30, "-", 1);
             }
         }
-        rowY += 130;   // next row: 130px below (90px cell + 40px gap)
+        rowY += 100;   // next row: 100px (60px cell content + 40px gap)
     }
 
-    // Footer
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 20, "Tap=view   M-Hold=home   Hold=menu");
+    // Footer (matches CalendarApp convention)
+    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }
 
@@ -271,67 +264,58 @@ void WeatherApp::renderWeek() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
 
-    // --- Title + sync time (same spacing as Today view) ---
-    d.drawTextCentered(24, String(_snap.label), 2);
+    // --- Title + sync time (title lowered, same baseline model as Today) ---
+    d.drawTextCentered(48, String(_snap.label), 1);     // title baseline 48
     if (_snap.fetchedUtc > 0) {
         int64_t y_dummy; unsigned m_dummy, dd, hh, mm, ss;
         core::civilFromUtc(_snap.fetchedUtc, CAL_TZ_OFFSET_SEC, y_dummy, m_dummy, dd, hh, mm, ss);
         char timeBuf[32];
-        snprintf(timeBuf, sizeof(timeBuf), "Updated %02u:%02u  -  %d days", hh, mm, _snap.dayCount);
-        d.drawTextCentered(72, String(timeBuf), 1);
+        snprintf(timeBuf, sizeof(timeBuf), "Updated %02u:%02u  %d days", hh, mm, _snap.dayCount);
+        d.drawTextCentered(80, String(timeBuf), 1);     // sync baseline 80
     } else {
-        d.drawTextCentered(72, "Never fetched", 1);
+        d.drawTextCentered(80, "Never fetched", 1);
     }
 
     const bool haveData = _snap.dayCount > 0;
     if (!haveData) {
-        d.drawTextCentered(260, "No forecast data", 2);
-        d.drawTextCentered(310, "LongHold -> menu -> Refresh now", 1);
-        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 20, "Tap=view   M-Hold=home   Hold=menu");
+        d.drawTextCentered(260, "No forecast data", 1);
+        d.drawTextCentered(294, "LongHold -> menu -> Refresh now", 1);
+        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
         d.flush(true);
         return;
     }
 
-    // Section header
-    d.drawText(MARGIN_X, 100, "7-DAY FORECAST", 1);
+    // Section header (lowered per user request)
+    d.drawText(MARGIN_X, 118, "7-DAY FORECAST", 1);
 
-    // Day rows — 42px spacing for clear separation
-    int y = 130;
+    // Day rows — baseline advance matches CalendarApp (readerLineHeight + 8)
+    int lh = d.readerLineHeight() + 8;   // ~41px per row
+    int y  = 156;                        // first row baseline
     int64_t d0 = core::todayStartUtc(_snap.fetchedUtc, CAL_TZ_OFFSET_SEC);
-    for (int i = 0; i < _snap.dayCount && i < WEATHER_FORECAST_DAYS; i++, y += 42) {
+    for (int i = 0; i < _snap.dayCount && i < WEATHER_FORECAST_DAYS; i++, y += lh) {
         const core::WeatherDay &day = _snap.days[i];
         int wd = core::weekdayFromUtc(d0 + (int64_t)i * 86400, CAL_TZ_OFFSET_SEC);
 
-        // Highlight today (day 0) with a shaded background
+        // Highlight today (day 0) with a selection box
         if (i == 0) {
-            d.fillRectShade(MARGIN_X - 4, y - 4, DISPLAY_WIDTH - 2 * MARGIN_X + 8, 30, 235);
+            int rowW = d.usableWidth() + 20;
+            d.drawSelectionBox(MARGIN_X - 10, y - d.readerAscender() - 4, rowW, lh - 2);
         }
 
-        // Day name + temps + glyph badge + description
+        // Day name + temps + glyph + description (fixed x positions)
         String dayName = String(WD_SHORT[wd]);
         String temps   = fmtTenths(day.tMin) + " .. " + fmtTenths(day.tMax) + " C";
         String glyph   = String(core::weatherCodeGlyph(day.weatherCode));
         String desc    = String(codeName(day.weatherCode));
 
-        // Draw day name (fixed position)
         d.drawBookText(MARGIN_X + 8, y, dayName);
-
-        // Draw temps (after day name, aligned)
-        int tx = MARGIN_X + 80;
-        d.drawBookText(tx, y, temps);
-
-        // Draw glyph badge (shaded background)
-        int gx = MARGIN_X + 320;
-        int gw = d.textWidth(glyph, false);
-        d.fillRectShade(gx - 6, y - 2, gw + 12, 24, 215);
-        d.drawBookText(gx, y, glyph);
-
-        // Draw description (after badge)
-        d.drawBookText(gx + gw + 16, y, desc);
+        d.drawBookText(MARGIN_X + 80, y, temps);
+        d.drawBookText(MARGIN_X + 320, y, glyph);          // glyph (Georgia, distinct)
+        d.drawBookText(MARGIN_X + 370, y, desc);
     }
 
-    // Footer
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 20, "Tap=view   M-Hold=home   Hold=menu");
+    // Footer (matches CalendarApp convention)
+    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }
 
