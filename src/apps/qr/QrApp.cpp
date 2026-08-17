@@ -223,7 +223,7 @@ void QrApp::renderMain() {
 void QrApp::renderEmptyState() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(70, "QR Toolkit");
+    d.drawTextCentered(ui::TITLE_Y, "QR Toolkit");
     d.drawBookText(MARGIN_X, 190, "No QR entries configured yet.");
     d.drawBookText(MARGIN_X, 226, "Add them in src/secrets.h (git-ignored):");
     d.drawBookText(MARGIN_X, 262, "  #define QR_PAYLOAD_0  \"https://example.com\"");

@@ -1,6 +1,8 @@
 #include "VoiceJournalApp.h"
 #include "app/AppManager.h"
 #include "core/VoiceModel.h"
+#include "core/UiStyle.h"       // ui::FOOTER_Y (STD·R1 minimal fix)
+#include "config.h"             // MARGIN_X / MARGIN_Y
 #include "storage/BookStorage.h"
 #include "display/DisplayManager.h"
 #include "app/WifiSession.h"
@@ -303,12 +305,12 @@ void VoiceJournalApp::updateRecordingDisplay() {
         _lastDurationSec = sec;
         // Clear and draw a BIG recording indicator
         _display.clearBuffer();
-        // Top: large "REC" with blinking dot
+        // Top: large "REC" with blinking dot (x inside the panel margins)
         char buf[64];
         snprintf(buf, sizeof(buf), "● REC  %02u:%02u", sec / 60, sec % 60);
-        _display.drawBookText(0, 80, String(buf));
+        _display.drawBookText(MARGIN_X, 80, String(buf));
         // Bottom: hint
-        _display.drawBookText(0, _display.usableHeight() - 60, String("Tap to stop"));
+        _display.drawBookText(MARGIN_X, _display.usableHeight() - 60, String("Tap to stop"));
         _display.flush();
     }
 }
@@ -417,7 +419,9 @@ void VoiceJournalApp::onLoop(uint32_t /*nowMs*/) {
 
 void VoiceJournalApp::drawStatus(const char *status) {
     _display.clearBuffer();
-    _display.drawBookText(0, 0, String(status));
+    // drawBookText y is a BASELINE: y=0 renders off-screen, so anchor the
+    // first line at MARGIN_Y + ascender (STD·R1 minimal fix).
+    _display.drawBookText(MARGIN_X, MARGIN_Y + _display.readerAscender(), String(status));
     _display.flush();
 }
 
@@ -428,7 +432,7 @@ void VoiceJournalApp::drawJournalPage(int page) {
     int endIdx   = startIdx + 10;
     if (endIdx > _entryCount) endIdx = _entryCount;
 
-    int y = 20;
+    int y = MARGIN_Y + _display.readerAscender();   // first visible baseline
     for (int i = startIdx; i < endIdx; i++) {
         if (i >= _entryCount) break;
 
@@ -446,14 +450,14 @@ void VoiceJournalApp::drawJournalPage(int page) {
         char line[128];
         snprintf(line, sizeof(line), "%s  %s", timeStr, _entries[i].title);
 
-        _display.drawBookText(0, y, String(line));
-        y += 30;
+        _display.drawBookText(MARGIN_X, y, String(line));
+        y += _display.readerLineHeight();
     }
 
     char pageInfo[32];
     snprintf(pageInfo, sizeof(pageInfo), "Page %d of %d",
              page + 1, (_entryCount + 9) / 10);
-    _display.drawBookText(0, _display.usableHeight() - 40, String(pageInfo));
+    _display.drawBookText(MARGIN_X, ui::FOOTER_Y, String(pageInfo));
 
     _display.flush();
 }

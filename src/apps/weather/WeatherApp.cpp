@@ -173,17 +173,9 @@ void WeatherApp::renderToday() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
 
-    // --- Title + sync time (baselines matched to CalendarApp convention) ---
-    d.drawTextCentered(48, String(_snap.label));     // title baseline 48
-    if (_snap.fetchedUtc > 0) {
-        int64_t y_dummy; unsigned m_dummy, dd, hh, mm, ss;
-        core::civilFromUtc(_snap.fetchedUtc, CAL_TZ_OFFSET_SEC, y_dummy, m_dummy, dd, hh, mm, ss);
-        char timeBuf[16];
-        snprintf(timeBuf, sizeof(timeBuf), "Updated %02u:%02u", hh, mm);
-        d.drawTextCentered(80, String(timeBuf));     // sync baseline 80
-    } else {
-        d.drawTextCentered(80, "Never fetched");
-    }
+    // --- Title + sync line (shared ui:: anchors, CalendarApp convention) ---
+    d.drawTextCentered(ui::TITLE_Y, String(_snap.label));
+    d.drawBookText(MARGIN_X, ui::SUBTITLE_Y, lastSyncLine());
 
     const bool haveData = _snap.cur.valid || _snap.hourCount > 0;
     if (!haveData) {
@@ -266,17 +258,9 @@ void WeatherApp::renderWeek() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
 
-    // --- Title + sync time (title lowered, same baseline model as Today) ---
-    d.drawTextCentered(48, String(_snap.label));     // title baseline 48
-    if (_snap.fetchedUtc > 0) {
-        int64_t y_dummy; unsigned m_dummy, dd, hh, mm, ss;
-        core::civilFromUtc(_snap.fetchedUtc, CAL_TZ_OFFSET_SEC, y_dummy, m_dummy, dd, hh, mm, ss);
-        char timeBuf[32];
-        snprintf(timeBuf, sizeof(timeBuf), "Updated %02u:%02u  %d days", hh, mm, _snap.dayCount);
-        d.drawTextCentered(80, String(timeBuf));     // sync baseline 80
-    } else {
-        d.drawTextCentered(80, "Never fetched");
-    }
+    // --- Title + sync line (shared ui:: anchors, same baseline model as Today) ---
+    d.drawTextCentered(ui::TITLE_Y, String(_snap.label));
+    d.drawBookText(MARGIN_X, ui::SUBTITLE_Y, lastSyncLine());
 
     const bool haveData = _snap.dayCount > 0;
     if (!haveData) {

@@ -102,7 +102,7 @@ void ReaderApp::showLibraryScreen() {
     if (_librarySel < 0 || _librarySel >= libraryItemCount()) _librarySel = 0;
 
     d.clearBuffer();
-    d.drawTextCentered(56, "Your Library");
+    d.drawTextCentered(ui::TITLE_Y, "Your Library");
 
     // Wi-Fi indicator + how to reach the portal.
     String wifiLine = wifi ? "Wi-Fi ON - join '" AP_SSID "' then open http://" WEB_HOSTNAME ".local"
@@ -115,7 +115,7 @@ void ReaderApp::showLibraryScreen() {
                 + (_ctx.storage.usingSD() ? "microSD" : "flash") + ")";
     drawSmallCentered(122, stat);
 
-    int lh = d.readerLineHeight() + 6;
+    int lh = d.readerLineHeight() + ui::ROW_GAP;
     int y  = 168;
 
     // Row 0: virtual Wi-Fi toggle.

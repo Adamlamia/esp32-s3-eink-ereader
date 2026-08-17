@@ -139,7 +139,7 @@ void DevCompanionApp::renderRefs() {
 void DevCompanionApp::renderRefEmpty() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(70, "Dev Companion - References");
+    d.drawTextCentered(ui::TITLE_Y, "Dev Companion - References");
     d.drawBookText(MARGIN_X, 200, "No reference images.");
     d.drawBookText(MARGIN_X, 236, "Copy .raw files to /refs/ on SD.");
     d.drawBookText(MARGIN_X, 264, "Make them with: python tools/make_refs.py <img>");
