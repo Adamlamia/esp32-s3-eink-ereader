@@ -5,6 +5,7 @@
 #include "app/AppManager.h"       // requestHome()
 #include "config.h"
 #include "core/Emvco.h"           // payload-kind detection (emvcoIsValid)
+#include "core/UiStyle.h"         // ui:: shared baseline anchors (STD·R1)
 
 #include <qrcode.h>               // ricmoo/QRCode (firmware-only lib_deps)
 #include <cstring>
@@ -215,7 +216,7 @@ void QrApp::renderMain() {
     // Footer: gesture legend + position in the carousel.
     String footer = String("Tap=next   Hold=menu        ")
                   + String(_index + 1) + "/" + String(_entries.count);
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, footer);
+    d.drawBookText(MARGIN_X, ui::FOOTER_Y, footer);
     d.flush(true);                    // full refresh: kill QR ghosting
 }
 
@@ -229,7 +230,7 @@ void QrApp::renderEmptyState() {
     d.drawBookText(MARGIN_X, 290, "  #define QR_LABEL_0    \"Example\"");
     d.drawBookText(MARGIN_X, 326, "A Wi-Fi QR also appears automatically when");
     d.drawBookText(MARGIN_X, 354, "WIFI_STA_SSID / WIFI_STA_PASS are set.");
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Hold=menu");
+    d.drawBookText(MARGIN_X, ui::FOOTER_Y, "Hold=menu");
     d.flush(true);
 }
 
@@ -305,11 +306,11 @@ static String menuLabelFor(int i) {
 void QrApp::renderMenu() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(74, "QR Menu");
+    d.drawTextCentered(ui::MENU_TITLE_Y, "QR Menu");
 
     const int lh = d.lineHeightFor(1) + 16;
     const int x  = DISPLAY_WIDTH / 2 - 220;
-    int y = 230;
+    int y = ui::MENU_START_Y;
     for (int i = 0; i < MENU_COUNT; i++) {
         String label = menuLabelFor(i);
         if (i == _menuSel) {
@@ -319,7 +320,7 @@ void QrApp::renderMenu() {
         d.drawText(x, y, label);
         y += lh;
     }
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16, "Tap = move    Hold = select");
+    d.drawBookText(MARGIN_X, ui::MENU_FOOTER_Y, "Tap = move    Hold = select");
     d.flush(true);
 }
 

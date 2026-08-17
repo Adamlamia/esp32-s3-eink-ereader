@@ -14,6 +14,7 @@
 #include "app/AppManager.h"
 #include "core/CalendarDate.h"
 #include "core/SyncSchedule.h"
+#include "core/UiStyle.h"      // ui:: shared baseline anchors (STD·R1)
 
 #include <time.h>
 
@@ -359,11 +360,11 @@ void CalendarApp::renderList(const String &title, const String *rows,
                              int rowCount, int highlight) {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(50, title);
-    d.drawBookText(MARGIN_X, 92, lastSyncLine());
+    d.drawTextCentered(ui::TITLE_Y, title);
+    d.drawBookText(MARGIN_X, ui::SUBTITLE_Y, lastSyncLine());
 
-    const int y0 = 130;                                   // first text baseline
-    int lh = d.readerLineHeight() + 8;
+    const int y0 = ui::CONTENT_Y;                         // first text baseline
+    int lh = d.readerLineHeight() + ui::ROW_GAP;
     int rowsPerPage = (DISPLAY_HEIGHT - 46 - y0) / lh;
     if (rowsPerPage < 1) rowsPerPage = 1;
 
@@ -385,7 +386,7 @@ void CalendarApp::renderList(const String &title, const String *rows,
 
     // Footer: gesture legend + page indicator when the list scrolls.
     String foot = "Tap=view   M-Hold=home   Hold=menu";
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, foot);
+    d.drawBookText(MARGIN_X, ui::FOOTER_Y, foot);
 
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }
@@ -398,11 +399,11 @@ static String menuLabelFor(int i) {
 void CalendarApp::renderMenu() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(74, "Calendar Menu");
+    d.drawTextCentered(ui::MENU_TITLE_Y, "Calendar Menu");
 
     int lh = d.lineHeightFor(1) + 16;
     int x  = DISPLAY_WIDTH / 2 - 220;
-    int y  = 230;
+    int y  = ui::MENU_START_Y;
     for (int i = 0; i < MENU_COUNT; i++) {
         String label = menuLabelFor(i);
         if (i == _menuSel) {
@@ -412,7 +413,7 @@ void CalendarApp::renderMenu() {
         d.drawText(x, y, label);
         y += lh;
     }
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16, "Tap = move    Hold = select");
+    d.drawBookText(MARGIN_X, ui::MENU_FOOTER_Y, "Tap = move    Hold = select");
     d.flush(true);
 }
 

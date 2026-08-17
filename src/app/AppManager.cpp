@@ -8,6 +8,7 @@
 #include "app/AppManager.h"
 #include "core/ButtonClassify.h"
 #include "core/CalendarDate.h"              // todayStartUtc / civilFromUtc (agenda panel)
+#include "core/UiStyle.h"                   // ui:: shared baseline anchors (STD·R1)
 #include "apps/calendar/CalendarStore.h"    // /calendar.json cache load (no network)
 #include <time.h>                           // time(nullptr) clock source
 #include <esp_sleep.h>   // ext0 + timer wakeup sources for light sleep
@@ -102,7 +103,7 @@ void AppManager::drawLauncher() {
     d.clearBuffer();
 
     // ===== Left panel: app list (x: MARGIN_X .. ~356) =======================
-    d.drawText(MARGIN_X, 64, "Apps");
+    d.drawText(MARGIN_X, ui::TITLE_Y, "Apps");
 
     // App list with selection box on the highlighted item, vertically
     // centred inside the panel body (y 100..480).
@@ -130,7 +131,7 @@ void AppManager::drawLauncher() {
     String status = String("Wi-Fi: ") + (wifi ? "ON" : "OFF")
                   + "       Battery: " + String(_ctx.batteryPct) + "%";
     d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 40, status);
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16,
+    d.drawBookText(MARGIN_X, ui::MENU_FOOTER_Y,
         "Tap = move    Hold = open");
     d.flush(true);
 }
@@ -193,9 +194,9 @@ void AppManager::drawAgendaPanel() {
         core::civilFromUtc(_agendaNowUtc, CAL_TZ_OFFSET_SEC, y, m, dd, hh, mm, ss);
         header += "  " + String((long)y) + "-" + pad2(m) + "-" + pad2(dd);
     }
-    d.drawText(rx, 64, header);
+    d.drawText(rx, ui::TITLE_Y, header);
 
-    const int lh   = d.readerLineHeight() + 8;
+    const int lh   = d.readerLineHeight() + ui::ROW_GAP;
     const int yTop = 112;                          // first text baseline
     const int yMax = 464;                          // room below for the Todo slot line
     int y = yTop;

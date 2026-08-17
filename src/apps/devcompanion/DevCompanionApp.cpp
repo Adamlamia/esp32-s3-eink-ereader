@@ -18,6 +18,7 @@
 #include "app/AppManager.h"
 #include "core/CalendarDate.h"     // civilFromUtc (fixed-offset UTC+8 formatting)
 #include "core/CalendarEvent.h"    // CAL_TZ_OFFSET_SEC / CAL_CLOCK_MIN_EPOCH
+#include "core/UiStyle.h"          // ui:: shared baseline anchors (STD·R1)
 
 #include <FS.h>
 #include <time.h>
@@ -142,7 +143,7 @@ void DevCompanionApp::renderRefEmpty() {
     d.drawBookText(MARGIN_X, 200, "No reference images.");
     d.drawBookText(MARGIN_X, 236, "Copy .raw files to /refs/ on SD.");
     d.drawBookText(MARGIN_X, 264, "Make them with: python tools/make_refs.py <img>");
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14,
+    d.drawBookText(MARGIN_X, ui::FOOTER_Y,
                    "MediumHold=GitHub   LongHold=menu");
     d.flush(true);
 }
@@ -194,7 +195,7 @@ void DevCompanionApp::renderRefImage() {
         d.drawTextCentered(DISPLAY_HEIGHT / 2 - 30, String(e.label));
         d.drawBookText(MARGIN_X, DISPLAY_HEIGHT / 2 + 24,
                        "Could not read " + path);
-        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14,
+        d.drawBookText(MARGIN_X, ui::FOOTER_Y,
                        "Tap=next   MediumHold=GitHub   LongHold=menu");
         d.flush(true);
         return;
@@ -266,14 +267,14 @@ String DevCompanionApp::ghLastSyncLine() const {
 void DevCompanionApp::renderGithub() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(50, "Dev Companion - GitHub");
-    d.drawBookText(MARGIN_X, 92, ghLastSyncLine());
+    d.drawTextCentered(ui::TITLE_Y, "Dev Companion - GitHub");
+    d.drawBookText(MARGIN_X, ui::SUBTITLE_Y, ghLastSyncLine());
 
 #ifndef GITHUB_PAT
     // No PAT compiled in: empty state (the firmware still builds + runs).
     d.drawBookText(MARGIN_X, 200, "Set GITHUB_PAT in secrets.h");
     d.drawBookText(MARGIN_X, 236, "(plus GITHUB_REPO_0..3). Use a read-only PAT.");
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14,
+    d.drawBookText(MARGIN_X, ui::FOOTER_Y,
                    "MediumHold=sync   LongHold=menu");
     d.flush(true);
     return;
@@ -281,7 +282,7 @@ void DevCompanionApp::renderGithub() {
     if (_repoCount == 0) {
         d.drawBookText(MARGIN_X, 200, "No GitHub data yet.");
         d.drawBookText(MARGIN_X, 236, "MediumHold to sync now.");
-        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14,
+        d.drawBookText(MARGIN_X, ui::FOOTER_Y,
                        "MediumHold=sync   LongHold=menu");
         d.flush(true);
         return;
@@ -301,7 +302,7 @@ void DevCompanionApp::renderGithub() {
         d.drawBookText(MARGIN_X, y, line);
         y += lh;
     }
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14,
+    d.drawBookText(MARGIN_X, ui::FOOTER_Y,
                    "Tap=next   MediumHold=sync   LongHold=menu");
     d.flush(true);
 #endif
@@ -388,11 +389,11 @@ static String menuLabelFor(int i) {
 void DevCompanionApp::renderMenu() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(74, "Dev Companion Menu");
+    d.drawTextCentered(ui::MENU_TITLE_Y, "Dev Companion Menu");
 
     int lh = d.lineHeightFor(1) + 16;
     int x  = DISPLAY_WIDTH / 2 - 220;
-    int y  = 210;
+    int y  = ui::MENU_START_Y;
     for (int i = 0; i < MENU_COUNT; i++) {
         String label = menuLabelFor(i);
         if (i == _menuSel) {
@@ -402,7 +403,7 @@ void DevCompanionApp::renderMenu() {
         d.drawText(x, y, label);
         y += lh;
     }
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16, "Tap = move    Hold = select");
+    d.drawBookText(MARGIN_X, ui::MENU_FOOTER_Y, "Tap = move    Hold = select");
     d.flush(true);
 }
 

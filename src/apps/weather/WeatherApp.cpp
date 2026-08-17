@@ -15,6 +15,7 @@
 #include "WeatherSync.h"
 #include "app/AppManager.h"
 #include "core/CalendarDate.h"
+#include "core/UiStyle.h"      // ui:: shared baseline anchors (STD·R1)
 
 #include <time.h>
 #include <stdio.h>
@@ -188,7 +189,7 @@ void WeatherApp::renderToday() {
     if (!haveData) {
         d.drawTextCentered(260, "No weather yet");
         d.drawTextCentered(294, "LongHold -> menu -> Refresh now");
-        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
+        d.drawBookText(MARGIN_X, ui::FOOTER_Y, "Tap=view   M-Hold=home   Hold=menu");
         d.flush(true);
         return;
     }
@@ -256,7 +257,7 @@ void WeatherApp::renderToday() {
     }
 
     // Footer (matches CalendarApp convention)
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
+    d.drawBookText(MARGIN_X, ui::FOOTER_Y, "Tap=view   M-Hold=home   Hold=menu");
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }
 
@@ -281,7 +282,7 @@ void WeatherApp::renderWeek() {
     if (!haveData) {
         d.drawTextCentered(260, "No forecast data");
         d.drawTextCentered(294, "LongHold -> menu -> Refresh now");
-        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
+        d.drawBookText(MARGIN_X, ui::FOOTER_Y, "Tap=view   M-Hold=home   Hold=menu");
         d.flush(true);
         return;
     }
@@ -289,9 +290,9 @@ void WeatherApp::renderWeek() {
     // Section header (lowered per user request)
     d.drawText(MARGIN_X, 118, "7-DAY FORECAST");
 
-    // Day rows — baseline advance matches CalendarApp (readerLineHeight + 8).
+    // Day rows — baseline advance matches CalendarApp (readerLineHeight + ROW_GAP).
     // Extra gap below the section header keeps the grid from feeling cramped.
-    int lh = d.readerLineHeight() + 8;   // ~41px per row
+    int lh = d.readerLineHeight() + ui::ROW_GAP;   // ~41px per row
     int y  = 174;                        // first row baseline
     int64_t d0 = core::todayStartUtc(_snap.fetchedUtc, CAL_TZ_OFFSET_SEC);
     for (int i = 0; i < _snap.dayCount && i < WEATHER_FORECAST_DAYS; i++, y += lh) {
@@ -317,7 +318,7 @@ void WeatherApp::renderWeek() {
     }
 
     // Footer (matches CalendarApp convention)
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, "Tap=view   M-Hold=home   Hold=menu");
+    d.drawBookText(MARGIN_X, ui::FOOTER_Y, "Tap=view   M-Hold=home   Hold=menu");
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }
 
@@ -329,11 +330,11 @@ static String menuLabelFor(int i) {
 void WeatherApp::renderMenu() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(74, "Weather Menu");
+    d.drawTextCentered(ui::MENU_TITLE_Y, "Weather Menu");
 
     int lh = d.lineHeightFor(1) + 16;
     int x  = DISPLAY_WIDTH / 2 - 220;
-    int y  = 230;
+    int y  = ui::MENU_START_Y;
     for (int i = 0; i < MENU_COUNT; i++) {
         String label = menuLabelFor(i);
         if (i == _menuSel) {
@@ -343,7 +344,7 @@ void WeatherApp::renderMenu() {
         d.drawText(x, y, label);
         y += lh;
     }
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16, "Tap = move    Hold = select");
+    d.drawBookText(MARGIN_X, ui::MENU_FOOTER_Y, "Tap = move    Hold = select");
     d.flush(true);
 }
 

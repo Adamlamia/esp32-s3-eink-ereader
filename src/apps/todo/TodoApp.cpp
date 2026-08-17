@@ -14,6 +14,7 @@
 #include "TodoSync.h"
 #include "app/AppManager.h"
 #include "core/CalendarDate.h"
+#include "core/UiStyle.h"      // ui:: shared baseline anchors (STD·R1)
 
 #include <time.h>
 #include <stdio.h>
@@ -196,11 +197,11 @@ void TodoApp::renderMain() {
     d.clearBuffer();
 
     // Title: app name + calendar label (TODO_ICS_LABEL, default "Tasks").
-    d.drawTextCentered(50, String("Todo - ") + String(TODO_ICS_LABEL));
-    d.drawBookText(MARGIN_X, 92, lastSyncLine());
+    d.drawTextCentered(ui::TITLE_Y, String("Todo - ") + String(TODO_ICS_LABEL));
+    d.drawBookText(MARGIN_X, ui::SUBTITLE_Y, lastSyncLine());
 
-    const int y0 = 130;                                   // first text baseline
-    int lh = d.readerLineHeight() + 8;
+    const int y0 = ui::CONTENT_Y;                         // first text baseline
+    int lh = d.readerLineHeight() + ui::ROW_GAP;
     int rowsPerPage = (DISPLAY_HEIGHT - 46 - y0) / lh;
     if (rowsPerPage < 1) rowsPerPage = 1;
 
@@ -216,7 +217,7 @@ void TodoApp::renderMain() {
             d.drawBookText(MARGIN_X, y0 + 12, "All clear - the Tasks calendar is empty.");
         }
 #endif
-        d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14,
+        d.drawBookText(MARGIN_X, ui::FOOTER_Y,
                        "Tap=move   M-Hold=home   Hold=menu");
         d.flush(true);
         return;
@@ -241,7 +242,7 @@ void TodoApp::renderMain() {
         int pages = (_rowCount + rowsPerPage - 1) / rowsPerPage;
         foot += "      " + String(_page / rowsPerPage + 1) + "/" + String(pages);
     }
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14, foot);
+    d.drawBookText(MARGIN_X, ui::FOOTER_Y, foot);
 
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }
@@ -258,11 +259,11 @@ static String menuLabelFor(int i) {
 void TodoApp::renderMenu() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(74, "Todo Menu");
+    d.drawTextCentered(ui::MENU_TITLE_Y, "Todo Menu");
 
     int lh = d.lineHeightFor(1) + 16;
     int x  = DISPLAY_WIDTH / 2 - 220;
-    int y  = 230;
+    int y  = ui::MENU_START_Y;
     for (int i = 0; i < MENU_COUNT; i++) {
         String label = menuLabelFor(i);
         if (i == _menuSel) {
@@ -272,7 +273,7 @@ void TodoApp::renderMenu() {
         d.drawText(x, y, label);
         y += lh;
     }
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16, "Tap = move    Hold = select");
+    d.drawBookText(MARGIN_X, ui::MENU_FOOTER_Y, "Tap = move    Hold = select");
     d.flush(true);
 }
 

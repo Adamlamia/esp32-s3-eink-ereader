@@ -7,6 +7,7 @@
 // ===========================================================================
 #include "ReaderApp.h"
 #include "core/Format.h"
+#include "core/UiStyle.h"      // ui:: shared baseline anchors (STD·R1)
 
 // --- Construction / destruction --------------------------------------------
 ReaderApp::ReaderApp(SystemContext &ctx)
@@ -217,10 +218,10 @@ void ReaderApp::showMenuScreen() {
     DisplayManager &d = _ctx.display;
     d.setWifiState(_ctx.portal && _ctx.portal->isRunning());
     d.clearBuffer();
-    d.drawTextCentered(74, "Menu");
+    d.drawTextCentered(ui::MENU_TITLE_Y, "Menu");
     int lh = d.lineHeightFor(1) + 16;
     int x  = DISPLAY_WIDTH / 2 - 220;
-    int y  = 190;
+    int y  = ui::MENU_START_Y;
     for (int i = 0; i < MENU_COUNT; i++) {
         String label = menuLabel(i);
         if (i == _menuSel) {
@@ -230,7 +231,7 @@ void ReaderApp::showMenuScreen() {
         d.drawText(x, y, label);
         y += lh;
     }
-    d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16,
+    d.drawBookText(MARGIN_X, ui::MENU_FOOTER_Y,
         "Tap = move    Hold = select");
     d.flush(true);
 }
