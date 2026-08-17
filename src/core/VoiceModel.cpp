@@ -87,7 +87,7 @@ int readVoiceQueue(const std::string &in, VoiceEntry *out, int maxOut) {
 }
 
 // Write a new entry to the queue (append), or truncate if full
-bool writeVoiceQueue(const std::string &in, const char *wavPath, int64_t timestampUtc) {
+bool writeVoiceQueue(std::string &in, const char *wavPath, int64_t timestampUtc) {
     if (!wavPath) return false;
     
     // Parse existing queue
@@ -120,9 +120,8 @@ bool writeVoiceQueue(const std::string &in, const char *wavPath, int64_t timesta
         result += "\n";
     }
     
-    // Write back to the input string (caller handles persistence)
-    // Note: This modifies the input string, which is expected behavior for this seam
-    // The caller will write the result to the filesystem
+    // Write the new queue content back in place (caller persists it).
+    in = result;
     return true;
 }
 
@@ -187,8 +186,12 @@ int deserializeJournalCache(const std::string &in, VoiceEntry *entries, int maxO
     // Find "entries":[
     const char *entriesStart = strstr(p, "\"entries\":[");
     if (!entriesStart) return 0;
+
+    // Corrupt-file contract: a truncated document (missing closing ']') must
+    // be rejected wholesale rather than half-parsed.
+    if (!strchr(entriesStart, ']')) return 0;
     
-    p = entriesStart + 12; // Skip "entries":[
+    p = entriesStart + 11; // Skip "entries":[ (11 chars)
     
     int count = 0;
     while (*p && count < maxOut) {
@@ -200,40 +203,40 @@ int deserializeJournalCache(const std::string &in, VoiceEntry *entries, int maxO
         VoiceEntry entry;
         memset(&entry, 0, sizeof(entry));
         
-        // Find title
+        // Find title (content starts 9 chars after the key's opening quote)
         const char *titleStart = strstr(p, "\"title\":\"");
         if (titleStart) {
-            const char *titleEnd = strstr(titleStart + 10, "\"");
+            const char *titleEnd = strstr(titleStart + 9, "\"");
             if (titleEnd) {
-                size_t len = titleEnd - (titleStart + 10);
+                size_t len = titleEnd - (titleStart + 9);
                 if (len >= VOICE_TITLE_MAX) len = VOICE_TITLE_MAX - 1;
-                memcpy(entry.title, titleStart + 10, len);
+                memcpy(entry.title, titleStart + 9, len);
                 entry.title[len] = '\0';
             }
         }
         
-        // Find timestamp
+        // Find timestamp (content starts 6 chars after the key's opening quote)
         const char *tsStart = strstr(p, "\"ts\":\"");
         if (tsStart) {
-            const char *tsEnd = strstr(tsStart + 7, "\"");
+            const char *tsEnd = strstr(tsStart + 6, "\"");
             if (tsEnd) {
                 char tsStr[32];
-                size_t len = tsEnd - (tsStart + 7);
+                size_t len = tsEnd - (tsStart + 6);
                 if (len >= sizeof(tsStr) - 1) len = sizeof(tsStr) - 2;
-                memcpy(tsStr, tsStart + 7, len);
+                memcpy(tsStr, tsStart + 6, len);
                 tsStr[len] = '\0';
                 entry.timestampUtc = atoll(tsStr);
             }
         }
         
-        // Find path
+        // Find path (content starts 8 chars after the key's opening quote)
         const char *pathStart = strstr(p, "\"path\":\"");
         if (pathStart) {
-            const char *pathEnd = strstr(pathStart + 9, "\"");
+            const char *pathEnd = strstr(pathStart + 8, "\"");
             if (pathEnd) {
-                size_t len = pathEnd - (pathStart + 9);
+                size_t len = pathEnd - (pathStart + 8);
                 if (len >= VOICE_PATH_MAX) len = VOICE_PATH_MAX - 1;
-                memcpy(entry.path, pathStart + 9, len);
+                memcpy(entry.path, pathStart + 8, len);
                 entry.path[len] = '\0';
             }
         }

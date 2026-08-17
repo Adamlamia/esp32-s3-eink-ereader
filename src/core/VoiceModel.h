@@ -32,8 +32,10 @@ struct VoiceEntry {
 // Returns count written (0..maxOut).
 int readVoiceQueue(const std::string &in, VoiceEntry *out, int maxOut);
 
-// Write a new entry to the queue (append), or truncate if full. Returns true on success.
-bool writeVoiceQueue(const std::string &in, const char *wavPath, int64_t timestampUtc);
+// Write a new entry to the queue (append), or truncate oldest if full.
+// Updates `in` in place with the new queue content (caller persists it).
+// Returns true on success.
+bool writeVoiceQueue(std::string &in, const char *wavPath, int64_t timestampUtc);
 
 // --- Journal entry serialization ----------------------------------------------
 // Serialize a VoiceEntry[] into a compact JSON document for /journal.json.
