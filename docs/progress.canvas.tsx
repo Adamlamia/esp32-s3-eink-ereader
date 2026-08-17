@@ -22,11 +22,11 @@ const C = {
 
 // ── Status header ────────────────────────────────────────────────────────────
 const meta = {
-  status: "MAIN d2b0c5a · P1 COMPLETE · Weather UI polished · 266 tests · 0 TODO(TLS)",
+  status: "MAIN f53f84b · STD·R1 COMPLETE · ui:: token standardization · 269 tests · fontSize no-op removed",
   updated: "2026-08-07",
-  round: "P1 done — next: P2 (Todo backend decision) or flash device to review P1",
-  nextHumanAction: "Flash device to review Weather UI, or say 'next' for P2",
-  branch: "main (d2b0c5a)",
+  round: "STD·R1 done — all screens on shared ui:: baselines; device flashed",
+  nextHumanAction: "Eyeball launcher/library/menus/weather on device for the standardized baselines",
+  branch: "main (f53f84b)",
 };
 
 // ── Locked tech stack (so decisions aren't re-litigated) ─────────────────────
@@ -63,6 +63,7 @@ const milestones: { id: string; name: string; progress: number; status: string; 
   { id: "M15", name: "Batch 3 — Multi-tap nav + Calendar sync + QR docs", progress: 100, status: "done", rounds: "B3·R1", done: "Multi-tap burst window for menus/launcher, calendar sync scheduled-only, DuitNow scan docs; 260 tests" },
   { id: "M16", name: "P0 — Library multi-tap + Launcher sync + TLS CA", progress: 100, status: "done", rounds: "P0·R1", done: "Library browser multi-tap, launcher background tick for app sync, TLS CA validation (ISRG+GTS roots); 266 tests; 0 TODO(TLS)" },
   { id: "M17", name: "P1 — Weather UI visual polish", progress: 100, status: "done", rounds: "P1·R1", done: "Better visual hierarchy, spacing, and layout; shaded temperature box; section dividers; forecast alignment" },
+  { id: "M18", name: "STD — UI standardization (fonts/baselines/tokens)", progress: 100, status: "done", rounds: "STD·R1", done: "ui:: token header + all apps on shared baselines + misleading drawText fontSize removed + audit outliers fixed; flashed" },
 ];
 
 // ── Prompt chain — ACTIVE track: Batch-1 features (Weather → QR → Todo → Agenda) ─
@@ -90,6 +91,11 @@ const chainP0: { r: string; pattern: string; scope: string; status: StepStatus; 
 // ── P1 track: Weather UI polish ───────────────────────────────────────────
 const chainP1: { r: string; pattern: string; scope: string; status: StepStatus; note: string }[] = [
   { r: "P1·R1", pattern: "Implementation", scope: "Weather UI visual polish — better hierarchy, spacing, and layout", status: "done", note: "1 commit (f193b0c) · RAM 19.8% Flash 32.8% (+168B) · shaded temp box · section dividers · forecast alignment · PM-verified" },
+];
+
+// ── STD track: UI standardization ─────────────────────────────────────────
+const chainSTD: { r: string; pattern: string; scope: string; status: StepStatus; note: string }[] = [
+  { r: "STD·R1", pattern: "Implementation", scope: "ui:: layout token header + all apps migrated to shared baselines + no-op drawText fontSize removed + audit outliers (Weather subtitle, DevCompanion/Reader/QR titles, VoiceJournal geometry)", status: "done", note: "3 commits (334a3da/50d3586/f53f84b) · 269/270 tests (voicejournal pre-existing linker) · RAM 19.8% Flash 32.8% · flashed · PM-verified (commits, UiStyle.h, DisplayManager.h)" },
 ];
 
 // ── Secondary track: CalendarApp (COMPLETE, merged to main c75e50d) ──────────
@@ -174,6 +180,10 @@ const verificationTimeline: { when: string; round: string; what: string; result:
   { when: "2026-08-07", round: "P0·R1", what: "pio run -e lilygo_t5_47_s3", result: "SUCCESS — RAM 19.8%, Flash 32.8% (1373677 B)" },
   { when: "2026-08-07", round: "P0·R1", what: "git grep TODO(TLS) marker census", result: "0 matches — all 6 TODO(TLS) resolved" },
   { when: "2026-08-07", round: "P1·R1", what: "pio run -e lilygo_t5_47_s3", result: "SUCCESS — RAM 19.8%, Flash 32.8% (1373845 B, +168B from visual changes)" },
+  { when: "2026-08-07", round: "STD·R1", what: "pio test -e native (executor run, gcc via C:\\msys64\\mingw64\\bin)", result: "SUCCESS — 269/270 (test_voicejournal pre-existing linker error, unrelated)" },
+  { when: "2026-08-07", round: "STD·R1", what: "pio run -e lilygo_t5_47_s3", result: "SUCCESS — RAM 19.8%, Flash 32.8% (1376417 B)" },
+  { when: "2026-08-07", round: "STD·R1", what: "pio run -t upload (COM7)", result: "SUCCESS — 1376832 B, hash verified, hard reset" },
+  { when: "2026-08-07", round: "STD·R1", what: "grep proof: drawText/drawTextCentered with size arg in src/", result: "SUCCESS — 0 matches; fontSize param fully removed (compile-error if reintroduced)" },
 ];
 
 // ── Marker ledger summary (open TODO(marker) counts, from latest report) ─────
@@ -235,6 +245,8 @@ const decisions: { decision: string; status: string; note: string }[] = [
   { decision: "DuitNow QR re-encoded payload rejected by some scanners", status: "Deferred (P2)", note: "2026-08-07: EMVCo CRC valid but re-encoded QR not accepted by all scanners. Needs investigation — tag ordering or field normalisation issue. Functional for display on device" },
   { decision: "Calendar MONTHLY/YEARLY RRULE recurrence", status: "Closed", note: "2026-08-07 user decision: will NOT pursue MONTHLY/YEARLY recurrence. Only DAILY/WEEKLY+BYDAY supported. 7 TODO(R2) markers remain as deferred ledger but will not be actioned" },
   { decision: "Voice Journal on hold", status: "Deferred (P5)", note: "2026-08-07 user decision: device-side code merged (batch 2) but backend + full feature on hold until further notice" },
+  { decision: "UI standard = ui:: token header + baseline model", status: "Resolved", note: "STD·R1: TITLE_Y=50 / SUBTITLE_Y=92 (Georgia left) / CONTENT_Y=130 / ROW_GAP=8 / FOOTER_Y=H-14 / menu 74+230. All drawText y values are BASELINES; FiraSans is single-size (fontSize param removed — was a no-op that caused the weather spacing bugs). Georgia via drawBookText is the only real size lever" },
+  { decision: "Gesture deviations kept deliberate", status: "Resolved", note: "STD·R1 scope decision: DevCompanion MediumHold=GitHub-view and Reader-Library LongHold=open-book stay — standardizing them would cost functionality" },
 ];
 
 // ── Risks & mitigations ──────────────────────────────────────────────────────
@@ -255,7 +267,8 @@ const backlog: { priority: string; item: string; status: string; note: string }[
   { priority: "P0", item: "Library browser multi-tap", status: "To Review", note: "P0·R1: ReaderApp now uses tapCount() for library selection (aea10ed) — PENDING REVIEW" },
   { priority: "P0", item: "Launcher background sync gap", status: "To Review", note: "P0·R1: 1Hz background tick for all apps in launcher state (f48977e) — PENDING REVIEW" },
   { priority: "P0", item: "TLS CA validation (shared hardening)", status: "To Review", note: "P0·R1: CaCerts.h + wifiSessionApplyCa() + all 4 sync modules; 0 TODO(TLS) (0f9bf77) — PENDING REVIEW" },
-  { priority: "P1", item: "Weather UI/UX enhancement", status: "To Review", note: "P1·R1: Visual polish — better hierarchy, spacing, layout; shaded temp box; section dividers (f193b0c) — PENDING REVIEW" },
+  { priority: "P1", item: "Weather UI/UX enhancement", status: "Done", note: "P1·R1 polish + 2-view redesign + baseline-model fix (ea2ec2b) + Georgia grid (81068e1); superseded into STD·R1 token standard" },
+  { priority: "P1", item: "UI standardization (ui:: tokens)", status: "To Review", note: "STD·R1: 3 commits (334a3da/50d3586/f53f84b) — PENDING on-device visual QA of launcher/library/menus/weather" },
   { priority: "P2", item: "Todo backend decision", status: "Deferred", note: "Google Tasks has no ICS feed; decide Option C (ICS bridge) vs Option B (OAuth2); code+31 tests kept" },
   { priority: "P2", item: "DuitNow QR scanner compatibility", status: "Deferred", note: "Re-encoded EMVCo payload rejected by some scanners; investigate tag ordering / normalisation" },
   { priority: "P5", item: "Voice Journal backend + full feature", status: "On hold", note: "Device-side code merged (batch 2); backend (Whisper+Ollama / cloud) and integration on hold until further notice" },
@@ -334,6 +347,9 @@ const clearedChecks: { name: string; verified: string }[] = [
   { name: "P0 TODO(TLS) census verified", verified: "2026-08-07 by PM; git grep TODO(TLS) = 0 matches (all 6 resolved)" },
   { name: "P1 commits verified", verified: "2026-08-07 by PM; git log confirms f193b0c on feature/p1" },
   { name: "P1 firmware build verified", verified: "2026-08-07 by PM; pio run SUCCESS RAM 19.8% Flash 32.8% (+168B)" },
+  { name: "STD·R1 commits verified", verified: "2026-08-07 by PM; git log confirms 334a3da/50d3586/f53f84b on main, tree clean" },
+  { name: "STD·R1 UiStyle.h + fontSize removal verified", verified: "2026-08-07 by PM; UiStyle.h has all 8 tokens with baseline docs; DisplayManager.h drawText/drawTextCentered signatures size-free" },
+  { name: "STD·R1 firmware flashed", verified: "2026-08-07; upload SUCCESS 1376832 B, hash verified, hard reset" },
 ];
 
 const gates: { icon: string; name: string; act: string; how: string; ifSkipped: string }[] = [
@@ -468,6 +484,12 @@ export default function ProgressDashboard() {
           <>
             <div style={{ color: C.dim, fontSize: 11, margin: "12px 0 6px", textTransform: "uppercase", letterSpacing: 1 }}>P1 — Weather UI Polish</div>
             <ChainTable rows={chainP1} />
+          </>
+        )}
+        {chainSTD.length > 0 && (
+          <>
+            <div style={{ color: C.dim, fontSize: 11, margin: "12px 0 6px", textTransform: "uppercase", letterSpacing: 1 }}>STD — UI Standardization</div>
+            <ChainTable rows={chainSTD} />
           </>
         )}
       </Section>
