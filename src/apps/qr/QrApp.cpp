@@ -209,7 +209,7 @@ void QrApp::renderMain() {
     d.clearBuffer();
 
     const core::QrEntry &e = _entries.items[_index];
-    d.drawTextCentered(QR_LABEL_Y, String(e.label), 2);
+    d.drawTextCentered(QR_LABEL_Y, String(e.label));
     renderQr(e);                      // QR bitmap + kind caption (no flush)
 
     // Footer: gesture legend + position in the carousel.
@@ -222,7 +222,7 @@ void QrApp::renderMain() {
 void QrApp::renderEmptyState() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(70, "QR Toolkit", 2);
+    d.drawTextCentered(70, "QR Toolkit");
     d.drawBookText(MARGIN_X, 190, "No QR entries configured yet.");
     d.drawBookText(MARGIN_X, 226, "Add them in src/secrets.h (git-ignored):");
     d.drawBookText(MARGIN_X, 262, "  #define QR_PAYLOAD_0  \"https://example.com\"");
@@ -284,7 +284,7 @@ void QrApp::renderQr(const core::QrEntry &e) {
     }
 
     // Payload-type caption, centred beneath the bitmap.
-    d.drawTextCentered(QR_CAPTION_Y, String(core::qrKindCaption(e.kind)), 1);
+    d.drawTextCentered(QR_CAPTION_Y, String(core::qrKindCaption(e.kind)));
 }
 
 void QrApp::renderPayloadTooLong(const core::QrEntry &e) {
@@ -294,7 +294,7 @@ void QrApp::renderPayloadTooLong(const core::QrEntry &e) {
     d.drawBookText(MARGIN_X, 220, "This QR payload is too long to encode at");
     d.drawBookText(MARGIN_X, 248, "the supported QR versions (max 425 chars).");
     d.drawBookText(MARGIN_X, 284, String("Entry: ") + String(e.label));
-    d.drawTextCentered(QR_CAPTION_Y, String(core::qrKindCaption(e.kind)), 1);
+    d.drawTextCentered(QR_CAPTION_Y, String(core::qrKindCaption(e.kind)));
 }
 
 // --- Menu ------------------------------------------------------------------------
@@ -305,7 +305,7 @@ static String menuLabelFor(int i) {
 void QrApp::renderMenu() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(74, "QR Menu", 2);
+    d.drawTextCentered(74, "QR Menu");
 
     const int lh = d.lineHeightFor(1) + 16;
     const int x  = DISPLAY_WIDTH / 2 - 220;
@@ -316,7 +316,7 @@ void QrApp::renderMenu() {
             const int w = d.textWidth(label, false);
             d.drawSelectionBox(x - 18, y - 36, w + 36, 52);
         }
-        d.drawText(x, y, label, 1);
+        d.drawText(x, y, label);
         y += lh;
     }
     d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16, "Tap = move    Hold = select");

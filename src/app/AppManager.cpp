@@ -102,7 +102,7 @@ void AppManager::drawLauncher() {
     d.clearBuffer();
 
     // ===== Left panel: app list (x: MARGIN_X .. ~356) =======================
-    d.drawText(MARGIN_X, 64, "Apps", 2);
+    d.drawText(MARGIN_X, 64, "Apps");
 
     // App list with selection box on the highlighted item, vertically
     // centred inside the panel body (y 100..480).
@@ -116,7 +116,7 @@ void AppManager::drawLauncher() {
             int w = d.textWidth(label, false);
             d.drawSelectionBox(x - 18, y - 36, w + 36, 52);
         }
-        d.drawText(x, y, label, 1);
+        d.drawText(x, y, label);
         y += lh;
     }
 
@@ -193,7 +193,7 @@ void AppManager::drawAgendaPanel() {
         core::civilFromUtc(_agendaNowUtc, CAL_TZ_OFFSET_SEC, y, m, dd, hh, mm, ss);
         header += "  " + String((long)y) + "-" + pad2(m) + "-" + pad2(dd);
     }
-    d.drawText(rx, 64, header, 2);
+    d.drawText(rx, 64, header);
 
     const int lh   = d.readerLineHeight() + 8;
     const int yTop = 112;                          // first text baseline

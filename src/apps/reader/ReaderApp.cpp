@@ -101,7 +101,7 @@ void ReaderApp::showLibraryScreen() {
     if (_librarySel < 0 || _librarySel >= libraryItemCount()) _librarySel = 0;
 
     d.clearBuffer();
-    d.drawTextCentered(56, "Your Library", 2);
+    d.drawTextCentered(56, "Your Library");
 
     // Wi-Fi indicator + how to reach the portal.
     String wifiLine = wifi ? "Wi-Fi ON - join '" AP_SSID "' then open http://" WEB_HOSTNAME ".local"
@@ -217,7 +217,7 @@ void ReaderApp::showMenuScreen() {
     DisplayManager &d = _ctx.display;
     d.setWifiState(_ctx.portal && _ctx.portal->isRunning());
     d.clearBuffer();
-    d.drawTextCentered(74, "Menu", 2);
+    d.drawTextCentered(74, "Menu");
     int lh = d.lineHeightFor(1) + 16;
     int x  = DISPLAY_WIDTH / 2 - 220;
     int y  = 190;
@@ -227,7 +227,7 @@ void ReaderApp::showMenuScreen() {
             int w = d.textWidth(label, false);
             d.drawSelectionBox(x - 18, y - 36, w + 36, 52);
         }
-        d.drawText(x, y, label, 1);
+        d.drawText(x, y, label);
         y += lh;
     }
     d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16,

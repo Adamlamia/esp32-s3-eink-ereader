@@ -17,9 +17,13 @@ public:
     void flush(bool fullRefresh = false);
     void fullClear();                       // hardware clear (removes ghosting)
 
-    // Text helpers (coordinates in pixels, origin top-left)
-    void drawText(int x, int y, const String &text, uint8_t fontSize = 1);
-    void drawTextCentered(int y, const String &text, uint8_t fontSize = 1);
+    // Text helpers (coordinates in pixels, origin top-left). NOTE: `y` is the
+    // text BASELINE — glyphs extend ~30 px above it, a few px below.
+    // FiraSans is the SINGLE UI font (one size, no hierarchy); use
+    // drawBookText (Georgia) for body/subtitle text and ui:: tokens
+    // (core/UiStyle.h) for the shared anchor baselines.
+    void drawText(int x, int y, const String &text);
+    void drawTextCentered(int y, const String &text);
 
     // Bold outline box used to make the selected menu / library row obvious.
     void drawSelectionBox(int x, int y, int w, int h, int thickness = 3);

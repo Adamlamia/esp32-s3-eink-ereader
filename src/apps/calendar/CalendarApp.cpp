@@ -359,7 +359,7 @@ void CalendarApp::renderList(const String &title, const String *rows,
                              int rowCount, int highlight) {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(50, title, 2);
+    d.drawTextCentered(50, title);
     d.drawBookText(MARGIN_X, 92, lastSyncLine());
 
     const int y0 = 130;                                   // first text baseline
@@ -398,7 +398,7 @@ static String menuLabelFor(int i) {
 void CalendarApp::renderMenu() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(74, "Calendar Menu", 2);
+    d.drawTextCentered(74, "Calendar Menu");
 
     int lh = d.lineHeightFor(1) + 16;
     int x  = DISPLAY_WIDTH / 2 - 220;
@@ -409,7 +409,7 @@ void CalendarApp::renderMenu() {
             int w = d.textWidth(label, false);
             d.drawSelectionBox(x - 18, y - 36, w + 36, 52);
         }
-        d.drawText(x, y, label, 1);
+        d.drawText(x, y, label);
         y += lh;
     }
     d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16, "Tap = move    Hold = select");

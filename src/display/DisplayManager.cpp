@@ -72,10 +72,12 @@ int DisplayManager::textWidth(const String &text, bool book) const {
 int DisplayManager::usableWidth()  const { return DISPLAY_WIDTH  - 2 * MARGIN_X; }
 int DisplayManager::usableHeight() const { return DISPLAY_HEIGHT - MARGIN_Y - STATUS_H; }
 
-void DisplayManager::drawText(int x, int y, const String &text, uint8_t /*fontSize*/) {
+void DisplayManager::drawText(int x, int y, const String &text) {
     int cx = x, cy = y;
-    // FiraSans is the reference font shipped with the driver examples. Swapping
-    // fonts per size is a TODO; for now scale via the layout line height.
+    // FiraSans is the single UI font shipped with the driver examples — one
+    // size, no hierarchy (the old fontSize parameter was a no-op; STD·R1
+    // removed it). Visual hierarchy comes from baseline placement (ui::
+    // tokens) and the font choice (FiraSans vs Georgia drawBookText).
     writeln((GFXfont *)&FiraSans, text.c_str(), &cx, &cy, _framebuffer);
 }
 
@@ -84,13 +86,13 @@ void DisplayManager::drawBookText(int x, int y, const String &text) {
     writeln((GFXfont *)readerFontFor(_readerSmall), text.c_str(), &cx, &cy, _framebuffer);
 }
 
-void DisplayManager::drawTextCentered(int y, const String &text, uint8_t fontSize) {
+void DisplayManager::drawTextCentered(int y, const String &text) {
     int32_t cx = 0, cy = 0, x1, y1, w, h;
     // NOTE: get_text_bounds() takes x/y as int32_t* cursors (not values); passing
     // literal 0 would be a NULL pointer and crash on the first dereference.
     get_text_bounds((GFXfont *)&FiraSans, text.c_str(), &cx, &cy, &x1, &y1, &w, &h, NULL);
     int x = (DISPLAY_WIDTH - w) / 2;
-    drawText(x, y, text, fontSize);
+    drawText(x, y, text);
 }
 
 void DisplayManager::drawSelectionBox(int x, int y, int w, int h, int thickness) {
@@ -123,8 +125,8 @@ void DisplayManager::blitRaw(const uint8_t *data, size_t len) {
 
 void DisplayManager::showMessage(const String &title, const String &body) {
     clearBuffer();
-    drawTextCentered(DISPLAY_HEIGHT / 2 - 40, title, 2);
-    drawTextCentered(DISPLAY_HEIGHT / 2 + 20, body, 1);
+    drawTextCentered(DISPLAY_HEIGHT / 2 - 40, title);
+    drawTextCentered(DISPLAY_HEIGHT / 2 + 20, body);
     flush(true);
 }
 

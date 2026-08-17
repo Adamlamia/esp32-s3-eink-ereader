@@ -138,7 +138,7 @@ void DevCompanionApp::renderRefs() {
 void DevCompanionApp::renderRefEmpty() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(70, "Dev Companion - References", 2);
+    d.drawTextCentered(70, "Dev Companion - References");
     d.drawBookText(MARGIN_X, 200, "No reference images.");
     d.drawBookText(MARGIN_X, 236, "Copy .raw files to /refs/ on SD.");
     d.drawBookText(MARGIN_X, 264, "Make them with: python tools/make_refs.py <img>");
@@ -191,7 +191,7 @@ void DevCompanionApp::renderRefImage() {
 
     if (!drawn) {
         d.clearBuffer();
-        d.drawTextCentered(DISPLAY_HEIGHT / 2 - 30, String(e.label), 2);
+        d.drawTextCentered(DISPLAY_HEIGHT / 2 - 30, String(e.label));
         d.drawBookText(MARGIN_X, DISPLAY_HEIGHT / 2 + 24,
                        "Could not read " + path);
         d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 14,
@@ -266,7 +266,7 @@ String DevCompanionApp::ghLastSyncLine() const {
 void DevCompanionApp::renderGithub() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(50, "Dev Companion - GitHub", 2);
+    d.drawTextCentered(50, "Dev Companion - GitHub");
     d.drawBookText(MARGIN_X, 92, ghLastSyncLine());
 
 #ifndef GITHUB_PAT
@@ -388,7 +388,7 @@ static String menuLabelFor(int i) {
 void DevCompanionApp::renderMenu() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
-    d.drawTextCentered(74, "Dev Companion Menu", 2);
+    d.drawTextCentered(74, "Dev Companion Menu");
 
     int lh = d.lineHeightFor(1) + 16;
     int x  = DISPLAY_WIDTH / 2 - 220;
@@ -399,7 +399,7 @@ void DevCompanionApp::renderMenu() {
             int w = d.textWidth(label, false);
             d.drawSelectionBox(x - 18, y - 36, w + 36, 52);
         }
-        d.drawText(x, y, label, 1);
+        d.drawText(x, y, label);
         y += lh;
     }
     d.drawBookText(MARGIN_X, DISPLAY_HEIGHT - 16, "Tap = move    Hold = select");
