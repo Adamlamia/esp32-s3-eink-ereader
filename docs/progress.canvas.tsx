@@ -22,11 +22,11 @@ const C = {
 
 // ── Status header ────────────────────────────────────────────────────────────
 const meta = {
-  status: "MAIN 7d42345 · STD·R2 COMPLETE · last-update stamp standardized to bottom-right · 269 tests",
+  status: "MAIN 9df3231 · v0.3.0 RELEASED · 286/286 tests green · voicejournal seam bugs fixed",
   updated: "2026-08-07",
-  round: "STD·R2 done — shared drawFooter(): legend left, sync stamp bottom-right, all apps; device flashed",
-  nextHumanAction: "Pick next backlog item: P2 Todo backend decision, quick 270/270 test fix, or DuitNow QR investigation",
-  branch: "main (7d42345)",
+  round: "REL·R1 done — native suite fully green (286/286), VoiceModel bugs fixed, v0.3.0 tagged + flashed",
+  nextHumanAction: "Remaining backlog: P2 Todo backend decision, DuitNow QR investigation",
+  branch: "main (9df3231, tag v0.3.0)",
 };
 
 // ── Locked tech stack (so decisions aren't re-litigated) ─────────────────────
@@ -63,7 +63,8 @@ const milestones: { id: string; name: string; progress: number; status: string; 
   { id: "M15", name: "Batch 3 — Multi-tap nav + Calendar sync + QR docs", progress: 100, status: "done", rounds: "B3·R1", done: "Multi-tap burst window for menus/launcher, calendar sync scheduled-only, DuitNow scan docs; 260 tests" },
   { id: "M16", name: "P0 — Library multi-tap + Launcher sync + TLS CA", progress: 100, status: "done", rounds: "P0·R1", done: "Library browser multi-tap, launcher background tick for app sync, TLS CA validation (ISRG+GTS roots); 266 tests; 0 TODO(TLS)" },
   { id: "M17", name: "P1 — Weather UI visual polish", progress: 100, status: "done", rounds: "P1·R1", done: "Better visual hierarchy, spacing, and layout; shaded temperature box; section dividers; forecast alignment" },
-  { id: "M18", name: "STD — UI standardization (fonts/baselines/tokens)", progress: 100, status: "done", rounds: "STD·R1", done: "ui:: token header + all apps on shared baselines + misleading drawText fontSize removed + audit outliers fixed; flashed" },
+  { id: "M18", name: "STD — UI standardization (fonts/baselines/tokens)", progress: 100, status: "done", rounds: "STD·R1-R2", done: "ui:: token header + all apps on shared baselines + drawFooter bottom-right stamps + fontSize removed; QA passed" },
+  { id: "M19", name: "REL — v0.3.0 release", progress: 100, status: "done", rounds: "REL·R1", done: "286/286 native tests green (VoiceModel linked + 3 seam bugs fixed), tag v0.3.0 pushed, firmware flashed" },
 ];
 
 // ── Prompt chain — ACTIVE track: Batch-1 features (Weather → QR → Todo → Agenda) ─
@@ -97,6 +98,7 @@ const chainP1: { r: string; pattern: string; scope: string; status: StepStatus; 
 const chainSTD: { r: string; pattern: string; scope: string; status: StepStatus; note: string }[] = [
   { r: "STD·R1", pattern: "Implementation", scope: "ui:: layout token header + all apps migrated to shared baselines + no-op drawText fontSize removed + audit outliers (Weather subtitle, DevCompanion/Reader/QR titles, VoiceJournal geometry)", status: "done", note: "3 commits (334a3da/50d3586/f53f84b) · 269/270 tests (voicejournal pre-existing linker) · RAM 19.8% Flash 32.8% · flashed · PM-verified (commits, UiStyle.h, DisplayManager.h)" },
   { r: "STD·R2", pattern: "Implementation", scope: "Standardize last-update info to bottom-right corner — shared DisplayManager::drawFooter(legend, stamp), SUBTITLE_Y retired, 5 apps migrated", status: "done", note: "2 commits (34eac4a/7d42345) · 269/270 tests · RAM 19.8% Flash 32.8% · flashed · QR counter also moved right" },
+  { r: "REL·R1", pattern: "Implementation", scope: "Fully green native suite (286/286) + v0.3.0 tag — VoiceModel.cpp linked via test_build_src, writeVoiceQueue write-back bug, deserialize off-by-one bugs, corrupt-file contract enforced", status: "done", note: "1 commit (9df3231) · 286/286 PASSED · tag v0.3.0 pushed · firmware rebuilt + flashed · also fixed latent device bug (queue file was never updated)" },
 ];
 
 // ── Secondary track: CalendarApp (COMPLETE, merged to main c75e50d) ──────────
@@ -187,6 +189,9 @@ const verificationTimeline: { when: string; round: string; what: string; result:
   { when: "2026-08-07", round: "STD·R1", what: "grep proof: drawText/drawTextCentered with size arg in src/", result: "SUCCESS — 0 matches; fontSize param fully removed (compile-error if reintroduced)" },
   { when: "2026-08-07", round: "STD·R2", what: "pio test -e native", result: "SUCCESS — 269/270 (test_voicejournal pre-existing linker error)" },
   { when: "2026-08-07", round: "STD·R2", what: "pio run + upload (COM7)", result: "SUCCESS — Flash 32.8% (1376689 B), 1377104 B flashed, hash verified, hard reset" },
+  { when: "2026-08-07", round: "REL·R1", what: "pio test -e native", result: "SUCCESS — 286/286 test cases succeeded (suite total corrected: voicejournal contributes 18 cases)" },
+  { when: "2026-08-07", round: "REL·R1", what: "pio run + upload (COM7)", result: "SUCCESS — Flash 32.8% (1376805 B), firmware matches v0.3.0" },
+  { when: "2026-08-07", round: "REL·R1", what: "git tag v0.3.0 + push --tags", result: "SUCCESS — tag v0.3.0 on 9df3231 pushed to origin" },
 ];
 
 // ── Marker ledger summary (open TODO(marker) counts, from latest report) ─────
@@ -356,6 +361,7 @@ const clearedChecks: { name: string; verified: string }[] = [
   { name: "STD·R1 firmware flashed", verified: "2026-08-07; upload SUCCESS 1376832 B, hash verified, hard reset" },
   { name: "STD·R2 commits + flash verified", verified: "2026-08-07; 34eac4a/7d42345 pushed, 269/270 tests, upload SUCCESS 1377104 B" },
   { name: "STD·R1 + STD·R2 on-device QA", verified: "2026-08-07 by user: screens uniform, bottom-right stamps work fine" },
+  { name: "REL·R1 suite + release verified", verified: "2026-08-07 by PM; 286/286 green (exit 0), build SUCCESS, tag v0.3.0 visible in git log, device flashed" },
 ];
 
 const gates: { icon: string; name: string; act: string; how: string; ifSkipped: string }[] = [
