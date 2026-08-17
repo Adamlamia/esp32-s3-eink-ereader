@@ -218,8 +218,9 @@ void WeatherApp::renderToday() {
     d.drawText(MARGIN_X, 200, "TODAY - 2-HOUR FORECAST", 1);
 
     // --- Hourly grid: 2 rows x 6 columns ---
-    // Each cell has 3 stacked elements at 30px baseline intervals:
-    //   hour label, weather glyph (Georgia for visual distinction), temp.
+    // Each cell has 3 stacked elements at 30px baseline intervals, all in the
+    // Georgia reading font (drawBookText) — genuinely smaller than FiraSans,
+    // which keeps the grid quiet and lets the current-conditions block lead.
     int colW = (DISPLAY_WIDTH - 2 * MARGIN_X) / 6;   // ~151px per column
     int rowY = 238;   // first row: hour baseline
 
@@ -232,26 +233,26 @@ void WeatherApp::renderToday() {
             if (idx < _snap.hourCount && idx < WEATHER_HOURLY_SLOTS && _snap.hours[idx].valid) {
                 const core::WeatherHour &h = _snap.hours[idx];
 
-                // Hour label (FiraSans)
+                // Hour label (Georgia)
                 char hBuf[4];
                 snprintf(hBuf, sizeof(hBuf), "%02d", h.hourLocal);
-                int hw = d.textWidth(String(hBuf), false);
-                d.drawText(centerX - hw / 2, rowY, String(hBuf), 1);
+                int hw = d.textWidth(String(hBuf), true);
+                d.drawBookText(centerX - hw / 2, rowY, String(hBuf));
 
-                // Weather glyph (Georgia — visually distinct from FiraSans numbers)
+                // Weather glyph (Georgia)
                 String glyph = String(core::weatherCodeGlyph(h.weatherCode));
                 int gw = d.textWidth(glyph, true);
                 d.drawBookText(centerX - gw / 2, rowY + 30, glyph);
 
-                // Temperature (FiraSans)
+                // Temperature (Georgia)
                 String tStr = fmtTenths(h.tempTenths);
-                int ttw = d.textWidth(tStr, false);
-                d.drawText(centerX - ttw / 2, rowY + 60, tStr, 1);
+                int ttw = d.textWidth(tStr, true);
+                d.drawBookText(centerX - ttw / 2, rowY + 60, tStr);
             } else {
-                d.drawText(centerX - 4, rowY + 30, "-", 1);
+                d.drawBookText(centerX - 4, rowY + 30, "-");
             }
         }
-        rowY += 100;   // next row: 100px (60px cell content + 40px gap)
+        rowY += 125;   // next row: 125px (60px cell content + 65px gap)
     }
 
     // Footer (matches CalendarApp convention)
@@ -288,9 +289,10 @@ void WeatherApp::renderWeek() {
     // Section header (lowered per user request)
     d.drawText(MARGIN_X, 118, "7-DAY FORECAST", 1);
 
-    // Day rows — baseline advance matches CalendarApp (readerLineHeight + 8)
+    // Day rows — baseline advance matches CalendarApp (readerLineHeight + 8).
+    // Extra gap below the section header keeps the grid from feeling cramped.
     int lh = d.readerLineHeight() + 8;   // ~41px per row
-    int y  = 156;                        // first row baseline
+    int y  = 174;                        // first row baseline
     int64_t d0 = core::todayStartUtc(_snap.fetchedUtc, CAL_TZ_OFFSET_SEC);
     for (int i = 0; i < _snap.dayCount && i < WEATHER_FORECAST_DAYS; i++, y += lh) {
         const core::WeatherDay &day = _snap.days[i];
