@@ -25,7 +25,7 @@ const meta = {
   status: "MAIN 7d42345 · STD·R2 COMPLETE · last-update stamp standardized to bottom-right · 269 tests",
   updated: "2026-08-07",
   round: "STD·R2 done — shared drawFooter(): legend left, sync stamp bottom-right, all apps; device flashed",
-  nextHumanAction: "Eyeball any synced app (Calendar/Todo/Weather/DevCompanion/QR) — last-update info should sit bottom-right",
+  nextHumanAction: "Pick next backlog item: P2 Todo backend decision, quick 270/270 test fix, or DuitNow QR investigation",
   branch: "main (7d42345)",
 };
 
@@ -271,8 +271,8 @@ const backlog: { priority: string; item: string; status: string; note: string }[
   { priority: "P0", item: "Launcher background sync gap", status: "To Review", note: "P0·R1: 1Hz background tick for all apps in launcher state (f48977e) — PENDING REVIEW" },
   { priority: "P0", item: "TLS CA validation (shared hardening)", status: "To Review", note: "P0·R1: CaCerts.h + wifiSessionApplyCa() + all 4 sync modules; 0 TODO(TLS) (0f9bf77) — PENDING REVIEW" },
   { priority: "P1", item: "Weather UI/UX enhancement", status: "Done", note: "P1·R1 polish + 2-view redesign + baseline-model fix (ea2ec2b) + Georgia grid (81068e1); superseded into STD·R1 token standard" },
-  { priority: "P1", item: "UI standardization (ui:: tokens)", status: "To Review", note: "STD·R1: 3 commits (334a3da/50d3586/f53f84b) — PENDING on-device visual QA of launcher/library/menus/weather" },
-  { priority: "P1", item: "Last-update stamp → bottom-right", status: "To Review", note: "STD·R2: drawFooter() helper, 2 commits (34eac4a/7d42345) — PENDING on-device visual QA" },
+  { priority: "P1", item: "UI standardization (ui:: tokens)", status: "Done", note: "STD·R1: 3 commits (334a3da/50d3586/f53f84b) — on-device QA passed (2026-08-07 user confirmed uniform)" },
+  { priority: "P1", item: "Last-update stamp → bottom-right", status: "Done", note: "STD·R2: drawFooter() helper, 2 commits (34eac4a/7d42345) — on-device QA passed (2026-08-07 user confirmed)" },
   { priority: "P2", item: "Todo backend decision", status: "Deferred", note: "Google Tasks has no ICS feed; decide Option C (ICS bridge) vs Option B (OAuth2); code+31 tests kept" },
   { priority: "P2", item: "DuitNow QR scanner compatibility", status: "Deferred", note: "Re-encoded EMVCo payload rejected by some scanners; investigate tag ordering / normalisation" },
   { priority: "P5", item: "Voice Journal backend + full feature", status: "On hold", note: "Device-side code merged (batch 2); backend (Whisper+Ollama / cloud) and integration on hold until further notice" },
@@ -355,6 +355,7 @@ const clearedChecks: { name: string; verified: string }[] = [
   { name: "STD·R1 UiStyle.h + fontSize removal verified", verified: "2026-08-07 by PM; UiStyle.h has all 8 tokens with baseline docs; DisplayManager.h drawText/drawTextCentered signatures size-free" },
   { name: "STD·R1 firmware flashed", verified: "2026-08-07; upload SUCCESS 1376832 B, hash verified, hard reset" },
   { name: "STD·R2 commits + flash verified", verified: "2026-08-07; 34eac4a/7d42345 pushed, 269/270 tests, upload SUCCESS 1377104 B" },
+  { name: "STD·R1 + STD·R2 on-device QA", verified: "2026-08-07 by user: screens uniform, bottom-right stamps work fine" },
 ];
 
 const gates: { icon: string; name: string; act: string; how: string; ifSkipped: string }[] = [
