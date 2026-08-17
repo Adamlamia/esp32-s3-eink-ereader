@@ -198,7 +198,6 @@ void TodoApp::renderMain() {
 
     // Title: app name + calendar label (TODO_ICS_LABEL, default "Tasks").
     d.drawTextCentered(ui::TITLE_Y, String("Todo - ") + String(TODO_ICS_LABEL));
-    d.drawBookText(MARGIN_X, ui::SUBTITLE_Y, lastSyncLine());
 
     const int y0 = ui::CONTENT_Y;                         // first text baseline
     int lh = d.readerLineHeight() + ui::ROW_GAP;
@@ -217,8 +216,7 @@ void TodoApp::renderMain() {
             d.drawBookText(MARGIN_X, y0 + 12, "All clear - the Tasks calendar is empty.");
         }
 #endif
-        d.drawBookText(MARGIN_X, ui::FOOTER_Y,
-                       "Tap=move   M-Hold=home   Hold=menu");
+        d.drawFooter("Tap=move   M-Hold=home   Hold=menu", lastSyncLine());
         d.flush(true);
         return;
     }
@@ -236,13 +234,13 @@ void TodoApp::renderMain() {
         d.drawBookText(MARGIN_X, y, _rows[i]);
     }
 
-    // Footer: gesture legend + page indicator when the list scrolls.
+    // Footer: gesture legend + page indicator left, last-sync stamp right.
     String foot = "Tap=move   M-Hold=home   Hold=menu";
     if (_rowCount > rowsPerPage) {
         int pages = (_rowCount + rowsPerPage - 1) / rowsPerPage;
         foot += "      " + String(_page / rowsPerPage + 1) + "/" + String(pages);
     }
-    d.drawBookText(MARGIN_X, ui::FOOTER_Y, foot);
+    d.drawFooter(foot, lastSyncLine());
 
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }

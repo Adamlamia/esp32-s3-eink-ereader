@@ -214,9 +214,8 @@ void QrApp::renderMain() {
     renderQr(e);                      // QR bitmap + kind caption (no flush)
 
     // Footer: gesture legend + position in the carousel.
-    String footer = String("Tap=next   Hold=menu        ")
-                  + String(_index + 1) + "/" + String(_entries.count);
-    d.drawBookText(MARGIN_X, ui::FOOTER_Y, footer);
+    String counter = String(_index + 1) + "/" + String(_entries.count);
+    d.drawFooter("Tap=next   Hold=menu", counter);
     d.flush(true);                    // full refresh: kill QR ghosting
 }
 

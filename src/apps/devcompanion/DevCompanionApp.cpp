@@ -268,22 +268,19 @@ void DevCompanionApp::renderGithub() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
     d.drawTextCentered(ui::TITLE_Y, "Dev Companion - GitHub");
-    d.drawBookText(MARGIN_X, ui::SUBTITLE_Y, ghLastSyncLine());
 
 #ifndef GITHUB_PAT
     // No PAT compiled in: empty state (the firmware still builds + runs).
     d.drawBookText(MARGIN_X, 200, "Set GITHUB_PAT in secrets.h");
     d.drawBookText(MARGIN_X, 236, "(plus GITHUB_REPO_0..3). Use a read-only PAT.");
-    d.drawBookText(MARGIN_X, ui::FOOTER_Y,
-                   "MediumHold=sync   LongHold=menu");
+    d.drawFooter("MediumHold=sync   LongHold=menu", ghLastSyncLine());
     d.flush(true);
     return;
 #else
     if (_repoCount == 0) {
         d.drawBookText(MARGIN_X, 200, "No GitHub data yet.");
         d.drawBookText(MARGIN_X, 236, "MediumHold to sync now.");
-        d.drawBookText(MARGIN_X, ui::FOOTER_Y,
-                       "MediumHold=sync   LongHold=menu");
+        d.drawFooter("MediumHold=sync   LongHold=menu", ghLastSyncLine());
         d.flush(true);
         return;
     }
@@ -302,8 +299,7 @@ void DevCompanionApp::renderGithub() {
         d.drawBookText(MARGIN_X, y, line);
         y += lh;
     }
-    d.drawBookText(MARGIN_X, ui::FOOTER_Y,
-                   "Tap=next   MediumHold=sync   LongHold=menu");
+    d.drawFooter("Tap=next   MediumHold=sync   LongHold=menu", ghLastSyncLine());
     d.flush(true);
 #endif
 }

@@ -361,7 +361,6 @@ void CalendarApp::renderList(const String &title, const String *rows,
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
     d.drawTextCentered(ui::TITLE_Y, title);
-    d.drawBookText(MARGIN_X, ui::SUBTITLE_Y, lastSyncLine());
 
     const int y0 = ui::CONTENT_Y;                         // first text baseline
     int lh = d.readerLineHeight() + ui::ROW_GAP;
@@ -384,9 +383,8 @@ void CalendarApp::renderList(const String &title, const String *rows,
         }
     }
 
-    // Footer: gesture legend + page indicator when the list scrolls.
-    String foot = "Tap=view   M-Hold=home   Hold=menu";
-    d.drawBookText(MARGIN_X, ui::FOOTER_Y, foot);
+    // Footer: gesture legend left, last-sync stamp right (shared contract).
+    d.drawFooter("Tap=view   M-Hold=home   Hold=menu", lastSyncLine());
 
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }

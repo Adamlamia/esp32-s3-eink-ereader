@@ -173,15 +173,14 @@ void WeatherApp::renderToday() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
 
-    // --- Title + sync line (shared ui:: anchors, CalendarApp convention) ---
+    // --- Title (sync stamp lives in the footer, bottom-right) ---
     d.drawTextCentered(ui::TITLE_Y, String(_snap.label));
-    d.drawBookText(MARGIN_X, ui::SUBTITLE_Y, lastSyncLine());
 
     const bool haveData = _snap.cur.valid || _snap.hourCount > 0;
     if (!haveData) {
         d.drawTextCentered(260, "No weather yet");
         d.drawTextCentered(294, "LongHold -> menu -> Refresh now");
-        d.drawBookText(MARGIN_X, ui::FOOTER_Y, "Tap=view   M-Hold=home   Hold=menu");
+        d.drawFooter("Tap=view   M-Hold=home   Hold=menu", lastSyncLine());
         d.flush(true);
         return;
     }
@@ -248,8 +247,8 @@ void WeatherApp::renderToday() {
         rowY += 125;   // next row: 125px (60px cell content + 65px gap)
     }
 
-    // Footer (matches CalendarApp convention)
-    d.drawBookText(MARGIN_X, ui::FOOTER_Y, "Tap=view   M-Hold=home   Hold=menu");
+    // Footer: legend left, last-fetch stamp right (shared contract)
+    d.drawFooter("Tap=view   M-Hold=home   Hold=menu", lastSyncLine());
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }
 
@@ -258,15 +257,14 @@ void WeatherApp::renderWeek() {
     DisplayManager &d = _ctx.display;
     d.clearBuffer();
 
-    // --- Title + sync line (shared ui:: anchors, same baseline model as Today) ---
+    // --- Title (sync stamp lives in the footer, bottom-right) ---
     d.drawTextCentered(ui::TITLE_Y, String(_snap.label));
-    d.drawBookText(MARGIN_X, ui::SUBTITLE_Y, lastSyncLine());
 
     const bool haveData = _snap.dayCount > 0;
     if (!haveData) {
         d.drawTextCentered(260, "No forecast data");
         d.drawTextCentered(294, "LongHold -> menu -> Refresh now");
-        d.drawBookText(MARGIN_X, ui::FOOTER_Y, "Tap=view   M-Hold=home   Hold=menu");
+        d.drawFooter("Tap=view   M-Hold=home   Hold=menu", lastSyncLine());
         d.flush(true);
         return;
     }
@@ -301,8 +299,8 @@ void WeatherApp::renderWeek() {
         d.drawBookText(MARGIN_X + 370, y, desc);
     }
 
-    // Footer (matches CalendarApp convention)
-    d.drawBookText(MARGIN_X, ui::FOOTER_Y, "Tap=view   M-Hold=home   Hold=menu");
+    // Footer: legend left, last-fetch stamp right (shared contract)
+    d.drawFooter("Tap=view   M-Hold=home   Hold=menu", lastSyncLine());
     d.flush(true);   // full refresh: whole screen rewritten, kill ghosting
 }
 
