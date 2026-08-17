@@ -61,6 +61,13 @@ public:
     void showMessage(const String &title, const String &body);
     void showStatusBar(const String &bookTitle, int page, int totalPages);
 
+    // Shared two-part footer: gesture legend left-aligned at MARGIN_X and an
+    // optional status/sync stamp right-aligned, both on the ui::FOOTER_Y
+    // baseline (Georgia). The right side is truncated if the pair would
+    // overflow the usable width. Passing an empty right side draws the left
+    // part only.
+    void drawFooter(const String &left, const String &right);
+
     int  lineHeightFor(uint8_t fontSize) const;
     int  usableWidth()  const;
     int  usableHeight() const;

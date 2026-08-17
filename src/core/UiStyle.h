@@ -25,10 +25,10 @@ namespace ui {
 
 // --- Content screens (Calendar / Todo / DevCompanion convention) -----------
 constexpr int TITLE_Y    = 50;                        // FiraSans title, centred
-constexpr int SUBTITLE_Y = 92;                        // Georgia sync line, left at MARGIN_X
 constexpr int CONTENT_Y  = 130;                       // first content row baseline
 constexpr int ROW_GAP    = 8;                         // list rows advance readerLineHeight() + ROW_GAP
-constexpr int FOOTER_Y   = DISPLAY_HEIGHT - 14;       // Georgia gesture legend
+constexpr int FOOTER_Y   = DISPLAY_HEIGHT - 14;       // Georgia footer baseline (legend left,
+                                                      // last-update stamp right — drawFooter())
 
 // --- Menus (Tap = move, LongHold = select; items x = DISPLAY_WIDTH/2-220) --
 constexpr int MENU_TITLE_Y  = 74;                     // FiraSans menu title, centred

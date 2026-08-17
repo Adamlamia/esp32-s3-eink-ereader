@@ -3,6 +3,7 @@
 // ===========================================================================
 #include "DisplayManager.h"
 #include "config.h"
+#include "core/UiStyle.h"   // ui::FOOTER_Y baseline token
 
 #include "epd_driver.h"     // from LilyGo-EPD47
 #include "firasans.h"       // bundled font in the LilyGo-EPD47 examples
@@ -143,4 +144,21 @@ void DisplayManager::showStatusBar(const String &bookTitle, int page,
     int y = DISPLAY_HEIGHT - 7;
     drawBookText(MARGIN_X, y, left);
     drawBookText(DISPLAY_WIDTH - MARGIN_X - textWidth(right, true), y, right);
+}
+
+void DisplayManager::drawFooter(const String &left, const String &right) {
+    // Shared footer contract: gesture legend on the left, optional status/
+    // sync stamp right-aligned on the same ui::FOOTER_Y baseline (Georgia),
+    // so every app's "last update" info lives in the bottom-right corner.
+    // The right side is truncated if the pair would overflow the usable width.
+    drawBookText(MARGIN_X, ui::FOOTER_Y, left);
+    if (right.length() == 0) return;
+    const int usable = DISPLAY_WIDTH - 2 * MARGIN_X;
+    const int lw = textWidth(left, true);
+    String r = right;
+    while (r.length() > 0 && lw + textWidth(r, true) > usable)
+        r = r.substring(0, r.length() - 1);
+    if (r.length() > 0)
+        drawBookText(DISPLAY_WIDTH - MARGIN_X - textWidth(r, true),
+                     ui::FOOTER_Y, r);
 }
